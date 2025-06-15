@@ -1,112 +1,113 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
+
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const { OpenAI } = require("openai");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*',
-  }
+    origin: "*",
+  },
 });
 
 app.use(cors());
-app.use(express.static('public'));
+app.use(express.static("public"));
+app.use(bodyParser.json());
 
-let rooms = {}; // { roomName: { players: [], gameStarted: false, round: 1, prompt: '', answers: [], votes: {} } }
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "sk-your-key-here" });
 
-const prompts = [
-  "What's something you shouldn't do on a first date?",
-  "Describe your weirdest dream in 5 words.",
-  "What’s an unexpected use for a banana?",
-  "If pets could talk, what would be the first thing yours would say?"
-];
-
-function getPrompt() {
-  return prompts[Math.floor(Math.random() * prompts.length)];
+async function generatePrompt() {
+  const response = await openai.chat.completions.create({
+    model: "gpt-4",
+    messages: [{ role: "user", content: "Generate a hilarious, creative, and clean prompt for a party game." }],
+    temperature: 0.9,
+  });
+  return response.choices[0].message.content;
 }
 
-io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
+async function rewriteAnswer(text) {
+  if (!text || text.trim().length < 3) {
+    const res = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: "Make up a funny or absurd party game answer." }],
+      temperature: 1,
+    });
+    return res.choices[0].message.content;
+  }
+  return text;
+}
 
-  socket.on('join-room', ({ name, room }) => {
-    if (!rooms[room]) {
-      rooms[room] = {
-        players: [],
-        gameStarted: false,
-        round: 1,
-        prompt: '',
-        answers: [],
-        votes: {},
-      };
-    }
+let rooms = {};
 
-    const player = { id: socket.id, name };
-    rooms[room].players.push(player);
-    socket.join(room);
-
-    io.to(room).emit('player-list', rooms[room].players);
-    console.log(`${name} joined room ${room}`);
-  });
-
-  socket.on('start-game', (room) => {
-    const game = rooms[room];
-    if (game) {
-      game.gameStarted = true;
-      game.prompt = getPrompt();
-      game.answers = [];
-      game.votes = {};
-      io.to(room).emit('game-started', game);
+io.on("connection", (socket) => {
+  socket.on("join-room", ({ name, room }) => {
+    if (!rooms[room]) rooms[room] = { players: [], answers: [], votes: {}, round: 1 };
+    const existing = rooms[room].players.find(p => p.id === socket.id);
+    if (!existing) {
+      rooms[room].players.push({ id: socket.id, name });
+      socket.join(room);
+      io.to(room).emit("player-list", rooms[room].players);
     }
   });
 
-  socket.on('submit-answer', ({ room, answer }) => {
-    const game = rooms[room];
-    if (game) {
-      game.answers.push({ playerId: socket.id, text: answer });
-      if (game.answers.length === game.players.length) {
-        io.to(room).emit('voting-phase', game.answers);
+  socket.on("start-game", async (room) => {
+    if (!rooms[room]) return;
+    const prompt = await generatePrompt();
+    rooms[room].prompt = prompt;
+    io.to(room).emit("game-started", { prompt });
+  });
+
+  socket.on("submit-answer", async ({ room, answer }) => {
+    if (!rooms[room]) return;
+    const cleaned = await rewriteAnswer(answer);
+    rooms[room].answers.push({ playerId: socket.id, text: cleaned });
+  });
+
+  socket.on("end-answer-phase", (room) => {
+    if (!rooms[room]) return;
+    io.to(room).emit("voting-phase", rooms[room].answers);
+  });
+
+  socket.on("submit-vote", ({ room, votedPlayerId }) => {
+    if (!rooms[room]) return;
+    rooms[room].votes[votedPlayerId] = (rooms[room].votes[votedPlayerId] || 0) + 1;
+  });
+
+  socket.on("next-round", async (room) => {
+    if (!rooms[room]) return;
+    const votes = rooms[room].votes;
+    let winner = null;
+    let max = 0;
+    for (let id in votes) {
+      if (votes[id] > max) {
+        max = votes[id];
+        winner = rooms[room].players.find(p => p.id === id);
       }
     }
+    io.to(room).emit("round-winner", { winner, votes });
+
+    // Reset for next round
+    const prompt = await generatePrompt();
+    rooms[room].answers = [];
+    rooms[room].votes = {};
+    rooms[room].prompt = prompt;
+    rooms[room].round += 1;
+    io.to(room).emit("game-started", { prompt });
   });
 
-  socket.on('submit-vote', ({ room, votedPlayerId }) => {
-    const game = rooms[room];
-    if (game) {
-      if (!game.votes[votedPlayerId]) game.votes[votedPlayerId] = 0;
-      game.votes[votedPlayerId]++;
-
-      const totalVotes = Object.values(game.votes).reduce((a, b) => a + b, 0);
-      if (totalVotes === game.players.length) {
-        const winnerId = Object.entries(game.votes).sort((a, b) => b[1] - a[1])[0][0];
-        const winner = game.players.find(p => p.id === winnerId);
-        io.to(room).emit('round-winner', { winner, votes: game.votes });
-      }
-    }
-  });
-
-  socket.on('next-round', (room) => {
-    const game = rooms[room];
-    if (game) {
-      game.round++;
-      game.prompt = getPrompt();
-      game.answers = [];
-      game.votes = {};
-      io.to(room).emit('game-started', game);
-    }
-  });
-
-  socket.on('disconnect', () => {
-    for (const room in rooms) {
+  socket.on("disconnect", () => {
+    for (let room in rooms) {
       rooms[room].players = rooms[room].players.filter(p => p.id !== socket.id);
-      io.to(room).emit('player-list', rooms[room].players);
+      io.to(room).emit("player-list", rooms[room].players);
     }
-    console.log(`User disconnected: ${socket.id}`);
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });

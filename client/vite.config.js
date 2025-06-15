@@ -1,6 +1,7 @@
+
 export default {
-  root: '.',
   server: {
+    host: true,
     port: 5173
   }
-};
+}
