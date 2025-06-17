@@ -1,9 +1,28 @@
+:root {
+  --color-dark-background: #111;
+  --color-light-text: #fff;
+  --color-button-primary: #ff4081;
+  --color-button-hover: #e91e63;
+
+  --spacing-xxs: 0.25rem;
+  --spacing-xs: 0.5rem;
+  --spacing-s: 1rem;
+  --spacing-m: 2rem;
+
+  --font-size-base: 1rem;
+
+  --max-content-width: 800px;
+  --logo-width: 200px;
+  --player-image-size: 80px;
+  --player-card-max-width: 100px;
+  --winner-image-width: 200px;
+}
 
 body {
   margin: 0;
-  font-family: 'Arial', sans-serif;
-  background: #111;
-  color: #fff;
+  font-family: 'Arial', sans-serif; /* Consider using the 'VT323' font mentioned in index.html and tailwind.config.js here */
+  background: var(--color-dark-background);
+  color: var(--color-light-text);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -12,66 +31,66 @@ body {
 
 .app, .game-screen, .join-screen {
   text-align: center;
-  padding: 2rem;
-  max-width: 800px;
+  padding: var(--spacing-m);
+  max-width: var(--max-content-width);
   width: 100%;
 }
 
 .logo {
-  width: 200px;
-  margin-bottom: 1rem;
+  width: var(--logo-width);
+  margin-bottom: var(--spacing-s);
 }
 
 .players {
   display: flex;
   justify-content: space-around;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin: 1rem 0;
+  gap: var(--spacing-s);
+  margin: var(--spacing-s) 0;
 }
 
 .player {
   display: flex;
   flex-direction: column;
   align-items: center;
-  max-width: 100px;
+  max-width: var(--player-card-max-width);
 }
 
 .player img {
-  width: 80px;
+  width: var(--player-image-size);
   height: auto;
   border-radius: 10px;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--spacing-xs);
 }
 
 .stage-img {
   width: 100%;
-  margin-top: 2rem;
+  margin-top: var(--spacing-m);
 }
 
 .winner-img {
-  width: 200px;
-  margin: 1rem auto;
+  width: var(--winner-image-width);
+  margin: var(--spacing-s) auto;
 }
 
 input {
-  padding: 0.5rem;
-  margin: 0.5rem;
-  font-size: 1rem;
+  padding: var(--spacing-xs);
+  margin: var(--spacing-xs);
+  font-size: var(--font-size-base);
   width: 60%;
 }
 
 button {
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-  background-color: #ff4081;
-  color: white;
+  padding: var(--spacing-xs) var(--spacing-s);
+  font-size: var(--font-size-base);
+  background-color: var(--color-button-primary);
+  color: var(--color-light-text);
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  margin-top: 0.5rem;
+  margin-top: var(--spacing-xs);
 }
 
 button:hover {
-  background-color: #e91e63;
+  background-color: var(--color-button-hover);
 }
