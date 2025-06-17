@@ -1,10 +1,8 @@
-
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const { OpenAI } = require("openai");
 
 const app = express();
 const server = http.createServer(app);
@@ -18,53 +16,66 @@ app.use(cors());
 app.use(express.static("public"));
 app.use(bodyParser.json());
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "sk-your-key-here" });
+// 🎯 Hardcoded fallback prompts
+const fallbackPrompts = {
+  "1990s": [
+    "Invent a wild new Nickelodeon game show.",
+    "What's in your Y2K bug-out bag?",
+    "Describe your dream 90s toy mashup."
+  ],
+  "sci-fi": [
+    "Describe a malfunctioning AI assistant.",
+    "Name a new alien species and their favorite food.",
+    "Pitch a bad sci-fi sequel."
+  ],
+  "adult": [
+    "Write a terrible Tinder bio.",
+    "Invent a new adult party game.",
+    "Describe an awkward Zoom call."
+  ]
+};
 
-async function generatePrompt() {
-  const response = await openai.chat.completions.create({
-    model: "gpt-4",
-    messages: [{ role: "user", content: "Generate a hilarious, creative, and clean prompt for a party game." }],
-    temperature: 0.9,
-  });
-  return response.choices[0].message.content;
+function getPrompt(themeName = "1990s") {
+  const prompts = fallbackPrompts[themeName] || fallbackPrompts["1990s"];
+  return prompts[Math.floor(Math.random() * prompts.length)];
 }
 
-async function rewriteAnswer(text) {
-  if (!text || text.trim().length < 3) {
-    const res = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: "Make up a funny or absurd party game answer." }],
-      temperature: 1,
-    });
-    return res.choices[0].message.content;
-  }
-  return text;
-}
-
-let rooms = {};
+const rooms = {};
 
 io.on("connection", (socket) => {
-  socket.on("join-room", ({ name, room }) => {
-    if (!rooms[room]) rooms[room] = { players: [], answers: [], votes: {}, round: 1 };
-    const existing = rooms[room].players.find(p => p.id === socket.id);
-    if (!existing) {
-      rooms[room].players.push({ id: socket.id, name });
-      socket.join(room);
-      io.to(room).emit("player-list", rooms[room].players);
+  socket.on("join-room", ({ name, room, theme }) => {
+    if (!rooms[room]) {
+      rooms[room] = {
+        players: [],
+        answers: [],
+        votes: {},
+        round: 1,
+        theme: theme || { name: "1990s" },
+      };
     }
+
+    const playerExists = rooms[room].players.find((p) => p.id === socket.id);
+    if (!playerExists) {
+      rooms[room].players.push({ id: socket.id, name });
+    }
+
+    socket.join(room);
+    io.to(room).emit("player-list", rooms[room].players);
   });
 
-  socket.on("start-game", async (room) => {
-    if (!rooms[room]) return;
-    const prompt = await generatePrompt();
+  socket.on("game-started", ({ prompt }) => {
+    const room = Object.keys(rooms).find(r => rooms[r].players.some(p => p.id === socket.id));
+    if (!room) return;
+
     rooms[room].prompt = prompt;
+    rooms[room].answers = [];
+    rooms[room].votes = {};
     io.to(room).emit("game-started", { prompt });
   });
 
-  socket.on("submit-answer", async ({ room, answer }) => {
+  socket.on("submit-answer", ({ room, answer }) => {
     if (!rooms[room]) return;
-    const cleaned = await rewriteAnswer(answer);
-    rooms[room].answers.push({ playerId: socket.id, text: cleaned });
+    rooms[room].answers.push({ playerId: socket.id, text: answer });
   });
 
   socket.on("end-answer-phase", (room) => {
@@ -77,37 +88,41 @@ io.on("connection", (socket) => {
     rooms[room].votes[votedPlayerId] = (rooms[room].votes[votedPlayerId] || 0) + 1;
   });
 
-  socket.on("next-round", async (room) => {
+  socket.on("next-round", (room) => {
     if (!rooms[room]) return;
+
     const votes = rooms[room].votes;
     let winner = null;
-    let max = 0;
+    let maxVotes = 0;
+
     for (let id in votes) {
-      if (votes[id] > max) {
-        max = votes[id];
-        winner = rooms[room].players.find(p => p.id === id);
+      if (votes[id] > maxVotes) {
+        maxVotes = votes[id];
+        winner = rooms[room].players.find((p) => p.id === id);
       }
     }
-    io.to(room).emit("round-winner", { winner, votes });
 
-    // Reset for next round
-    const prompt = await generatePrompt();
+    io.to(room).emit("round-winner", { winner });
+
+    // Get new prompt based on theme
+    const prompt = getPrompt(rooms[room].theme?.name);
+    rooms[room].prompt = prompt;
     rooms[room].answers = [];
     rooms[room].votes = {};
-    rooms[room].prompt = prompt;
     rooms[room].round += 1;
+
     io.to(room).emit("game-started", { prompt });
   });
 
   socket.on("disconnect", () => {
-    for (let room in rooms) {
-      rooms[room].players = rooms[room].players.filter(p => p.id !== socket.id);
+    for (const room in rooms) {
+      rooms[room].players = rooms[room].players.filter((p) => p.id !== socket.id);
       io.to(room).emit("player-list", rooms[room].players);
     }
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
