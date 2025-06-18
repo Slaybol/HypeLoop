@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "client-dev": "vite --host",
-    "server-dev": "node index.js",
+    "server-dev": "node server/index.js",
     "dev": "concurrently \"npm run client-dev\" \"npm run server-dev\"",
     "build": "vite build",
     "preview": "vite preview",
