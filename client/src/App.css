@@ -1,0 +1,8 @@
+/* Minimal fallback, customize later */
+body {
+  font-family: "VT323", monospace;
+  background-color: #111;
+  color: white;
+  margin: 0;
+  padding: 1rem;
+}

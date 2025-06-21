@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "dev": "vite --host",
     "client-dev": "vite --host",
     "server-dev": "node server/index.js",
-    "dev": "concurrently \"npm run client-dev\" \"npm run server-dev\"",
+    "start": "concurrently \"cd client && vite preview\" \"node server/index.js\"",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"

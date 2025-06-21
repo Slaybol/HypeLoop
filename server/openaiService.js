@@ -1,30 +1,23 @@
 // server/openaiService.js
-const OpenAI = require('openai');
+let openai = null;
 
-// Initialize OpenAI client with API key from environment variables
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-async function generatePrompt(theme) {
-  try {
-    const completion = await openai.chat.completions.create({
-      messages: [
-        { role: "system", content: `You are a creative game master for a party game. Generate a single, funny, and engaging prompt related to the theme "${theme}". The prompt should be a question or a short statement that encourages humorous answers from players.` },
-        { role: "user", content: `Generate a prompt for a game round with the theme "${theme}".` },
-      ],
-      model: "gpt-3.5-turbo", // Or "gpt-4" for higher quality
-      max_tokens: 50,
-      temperature: 0.8,
-    });
-    return completion.choices[0].message.content.trim();
-  } catch (error) {
-    console.error("Error calling OpenAI API:", error);
-    throw new Error("Failed to generate prompt from AI.");
-  }
+// Only initialize OpenAI if API key is provided
+if (process.env.OPENAI_API_KEY) {
+  const OpenAI = require("openai");
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
 }
 
-// You might also add functions for commentary, answer evaluation, etc.
-// async function generateCommentary(context) { ... }
+async function generatePrompt(themeName) {
+  if (!openai) {
+    console.warn("⚠️ OpenAI is disabled. Using fallback prompt.");
+    return null; // This will make promptService.js use the fallback array
+  }
+  
+  // OpenAI logic would go here when enabled
+  console.log("🤖 OpenAI prompt generation would happen here...");
+  return null;
+}
 
 module.exports = { generatePrompt };

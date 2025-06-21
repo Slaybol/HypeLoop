@@ -1,29 +1,50 @@
 import { io } from "socket.io-client";
 
-// Use an environment variable for the server URL
-// For Vite, environment variables prefixed with VITE_ are exposed via import.meta.env
+// Use environment variable for both socket and HTTP requests
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+const API_BASE_URL = SERVER_URL;
 
 const socket = io(SERVER_URL, {
-  // Optional: add connection options if needed, e.g., for CORS
-  // autoConnect: false // If you want to manually connect later in your app
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000,
+  timeout: 20000
 });
 
-// Optional: Add basic connection status logging for debugging and user feedback
+// Connection state tracking
+let isConnected = false;
+let connectionCallbacks = [];
+
+// Connection status management
 socket.on('connect', () => {
+  isConnected = true;
   console.log('Socket connected to server:', socket.id, SERVER_URL);
-  // Optionally update a UI element to show connected status
+  
+  // Execute any pending callbacks waiting for connection
+  connectionCallbacks.forEach(callback => callback());
+  connectionCallbacks = [];
 });
 
 socket.on('disconnect', (reason) => {
+  isConnected = false;
   console.log('Socket disconnected:', reason);
-  // Inform the user about disconnection, e.g., "Lost connection to game server."
 });
 
 socket.on('connect_error', (error) => {
   console.error('Socket connection error:', error.message);
-  // Alert the user or display an error message in the UI
-  // alert('Could not connect to the game server. Please try again later.');
 });
 
+// Helper function to ensure socket is connected before emitting
+const emitWhenConnected = (event, data) => {
+  if (isConnected) {
+    socket.emit(event, data);
+  } else {
+    connectionCallbacks.push(() => socket.emit(event, data));
+  }
+};
+
+// Helper function to get connection state
+const getConnectionState = () => isConnected;
+
 export default socket;
+export { API_BASE_URL, emitWhenConnected, getConnectionState };

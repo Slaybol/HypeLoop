@@ -1,14 +1,17 @@
 const fs = require("fs");
-const clientPath = "./client";
-const serverPath = "./server/index.js";
 
-if (!fs.existsSync(clientPath)) {
-  console.error("❌ Missing: ./client directory");
-  process.exit(1);
-}
-if (!fs.existsSync(serverPath)) {
-  console.error("❌ Missing: ./server/index.js");
-  process.exit(1);
+function checkPath(path, description) {
+  if (!fs.existsSync(path)) {
+    console.error(`❌ Missing: ${path} (${description})`);
+    process.exit(1);
+  }
 }
 
-console.log("✅ All dev paths verified");
+console.log("🔎 Checking project structure...");
+
+checkPath("./client", "Vite frontend folder");
+checkPath("./client/index.html", "Vite entry HTML");
+checkPath("./client/src/main.jsx", "React root file");
+checkPath("./server/index.js", "Server entry point");
+
+console.log("✅ All required paths found.");
