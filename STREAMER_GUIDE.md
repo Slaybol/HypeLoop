@@ -1,181 +1,293 @@
-# 🎥 HypeLoop Stream Overlay Guide
+# 🎮 HypeLoop - Streamer Edition Guide
 
-Welcome to HypeLoop's professional stream overlay system! This guide will help you set up the overlay in OBS, Streamlabs, or any other streaming software.
+## 🚀 **Overview**
 
-## 🚀 Quick Setup
+HypeLoop is a **streamer-focused party game** that turns your chat into active participants. Players fill in the blanks of hilarious prompts, vote on the best answers, and experience unpredictable chaos mode that keeps everyone engaged.
 
-### 1. Access the Overlay
-- **Main Game**: `http://localhost:5173` (for players)
-- **Stream Overlay**: `http://localhost:5173/overlay?room=YOUR_ROOM_CODE`
+## ✨ **Key Features**
 
-### 2. OBS/Streamlabs Setup
-1. Add a **Browser Source** to your scene
-2. Set the URL to: `http://localhost:5173/overlay?room=YOUR_ROOM_CODE`
-3. Set dimensions: **1920x1080** (or your stream resolution)
-4. Check **"Shutdown source when not visible"**
-5. Set **"Refresh browser when scene becomes active"** (optional)
+### 🎯 **Core Gameplay**
+- **Single-blank prompts** - Easy to understand and participate
+- **Real-time voting** - See votes come in live
+- **Chaos Mode** - Random rule changes that create hilarious moments
+- **Voice integration** - Voice input/output for accessibility
+- **Mobile optimized** - Works perfectly on phones and tablets
 
-## 🎮 How It Works
+### 📺 **Streamer Tools** *(NEW!)*
+- **📊 Streamer Dashboard** - Real-time analytics and controls
+- **💬 Chat Integration** - Let Twitch chat participate with commands
+- **🎬 Auto-Clip Generation** - Automatically save funny moments
+- **🎨 Custom Branding** - Add your logo and colors
+- **⚡ Quick Actions** - Trigger chaos, pause game, end rounds
 
-The overlay automatically displays different screens based on the game state:
+## 🛠️ **Setup Instructions**
 
-### Waiting Screen
-- Shows the HypeLoop logo with a glowing effect
-- Displays all connected players with avatars
-- Shows a "Ready to start!" indicator when players are ready
+### 1. **Start the Game**
+```bash
+# Terminal 1 - Start the server
+cd server
+npm install
+npm start
 
-### Answering Screen
-- Large, prominent prompt text
-- Player status indicators (✅ answered, ⏳ thinking)
-- Chaos mode alerts with spinning icons
-- Speed round countdown timer (when active)
+# Terminal 2 - Start the client
+cd client
+npm install
+npm run dev
+```
 
-### Voting Screen
-- All answers displayed in cards
-- Real-time vote counts
-- Progress bar showing voting completion
-- Player avatars and names
+### 2. **Access Streamer Tools**
+- Open the game in your browser
+- Look for the **"📊 Streamer Tools"** button in the top-right corner
+- Click to open the comprehensive dashboard
 
-### Results Screen
-- Winner announcement with trophy icon
-- All answers with final vote counts
-- Winner badge on the winning answer
-- Golden highlight for the winner
+## 📊 **Streamer Dashboard**
 
-## 🎨 Customization Options
+### **Analytics Tab**
+- **Real-time player count** and active participants
+- **Total votes** and chaos mode triggers
+- **Top performer** tracking
+- **Chat participation** metrics
 
-### Overlay Settings
-- **Show Player Avatars**: Toggle player profile pictures
-- **Show Vote Counts**: Display real-time voting numbers
-- **Show Chaos Alerts**: Chaos mode notifications
-- **Show Speed Timer**: Countdown for speed rounds
-- **Overlay Opacity**: Adjust transparency (10%-100%)
-- **Font Size**: Small, Medium, or Large
-- **Theme**: Default, Dark, Neon, or Minimal
+### **Chat Integration Tab**
+- **Enable/disable** chat participation
+- **Chat commands** toggle
+- **Live chat feed** with command highlighting
+- **Recent commands** log
 
-### Quick Presets
-- **Reset to Default**: Restore all default settings
-- **Minimal Mode**: Clean, minimal appearance for subtle overlay
+**Available Chat Commands:**
+- `!join` - Join the game as a chat participant
+- `!vote [player]` - Vote for a specific player
+- `!chaos` - Request chaos mode activation
+- `!stats` - Display current game statistics
+- `!help` - Show available commands
 
-## 🌟 Features
+### **Auto-Clips Tab**
+- **Automatic clip generation** based on game events
+- **Customizable triggers** (chaos mode, winners, funny answers)
+- **Clip settings** (duration, quality, audio, chat overlay)
+- **Manual clip generation** button
+- **Clip management** (delete, share)
 
-### Chaos Mode Integration
-- Automatic chaos alerts with spinning icons
-- Visual indicators for active chaos modes
-- Speed round countdown timers
-- Special styling for chaos events
+### **Branding Tab**
+- **Custom logo** upload
+- **Primary/secondary colors** selection
+- **Live preview** of your branding
+- **Save/apply** custom themes
 
-### Real-Time Updates
-- Live vote counting
-- Player status updates
-- Automatic phase transitions
-- Dynamic content updates
+### **Quick Actions Tab**
+- **Trigger Chaos** - Manually activate chaos mode
+- **Save Clip** - Generate a clip right now
+- **Pause Game** - Pause the current round
+- **End Game** - End the current game session
 
-### Professional Design
-- Glassmorphism effects with backdrop blur
-- Smooth animations and transitions
-- Responsive design for different resolutions
-- Streamer-friendly color schemes
+## 🎬 **Auto-Clip Generation**
 
-## 🔧 Advanced Setup
+### **Automatic Triggers**
+- **🔥 Chaos Mode** - When chaos mode activates
+- **🏆 Winner** - When someone wins a round
+- **😂 Funny Answers** - When answers get high votes
+- **📊 High Votes** - When voting is particularly active
+- **🎮 Game Start** - When a new game begins
 
-### Multiple Overlays
-You can create multiple browser sources for different parts of the overlay:
+### **Clip Settings**
+- **Duration**: 15-60 seconds (adjustable)
+- **Quality**: Low, Medium, High
+- **Audio**: Include game audio
+- **Chat Overlay**: Include chat messages
 
-1. **Main Overlay**: Full screen overlay
-2. **Player List**: Just the player status section
-3. **Vote Counter**: Only the voting progress
-4. **Chaos Alert**: Standalone chaos notifications
+### **Clip Management**
+- **View recent clips** with timestamps
+- **Share clips** with one click
+- **Delete unwanted clips**
+- **Download clips** for editing
 
-### Custom Positioning
-- Use **Crop/Pad** filters to show only specific sections
-- Adjust **Position** and **Scale** for custom layouts
-- Use **Color Correction** for theme matching
+## 💬 **Chat Integration**
 
-### Stream Deck Integration
-Create Stream Deck buttons for:
-- Toggle overlay visibility
-- Switch between overlay themes
-- Reset overlay settings
-- Trigger manual chaos modes
+### **How It Works**
+1. **Enable chat integration** in the dashboard
+2. **Chat users type commands** like `!join` or `!vote Player1`
+3. **Commands are processed** in real-time
+4. **Chat participants** become active players
+5. **Votes from chat** count toward round results
 
-## 🎯 Best Practices
+### **Chat Commands Explained**
+- `!join` - Adds the user as a chat participant with 0 points
+- `!vote [player]` - Votes for a player (must match name partially)
+- `!chaos` - Requests chaos mode (streamer can approve)
+- `!stats` - Shows current game statistics
+- `!help` - Displays available commands
 
-### Visual Design
-- **Placement**: Position overlay in areas that don't cover important game content
-- **Transparency**: Use 70-90% opacity for best readability
-- **Font Size**: Choose based on your stream resolution
-- **Theme**: Match your stream's color scheme
+### **Chat Moderation**
+- **Command cooldowns** prevent spam
+- **User limits** prevent overwhelming participation
+- **Moderator controls** for command approval
+- **Chat log** for monitoring activity
 
-### Performance
-- **Refresh Rate**: Set to 30fps for smooth animations
-- **Browser Cache**: Clear cache if overlay doesn't update
-- **Network**: Ensure stable connection for real-time updates
+## 🎨 **Custom Branding**
 
-### Content Strategy
-- **Chaos Mode**: Great for building hype and engagement
-- **Vote Reveals**: Dramatic reveals of voting results
-- **Player Reactions**: Show player status for audience engagement
-- **Winner Celebrations**: Highlight round winners for excitement
+### **Logo Integration**
+- **Upload your logo** (PNG, JPG, SVG)
+- **Automatic scaling** and positioning
+- **Transparent background** support
+- **Preview before applying**
 
-## 🐛 Troubleshooting
+### **Color Customization**
+- **Primary color** picker for main elements
+- **Secondary color** picker for accents
+- **Live preview** of color changes
+- **Save multiple themes**
 
-### Overlay Not Showing
-1. Check the room code in the URL
-2. Verify the game server is running
-3. Ensure browser source is active
-4. Check OBS browser source settings
+### **Branding Locations**
+- **Game interface** elements
+- **Stream overlays** (coming soon)
+- **Clip thumbnails** (coming soon)
+- **Social media** exports (coming soon)
 
-### Not Updating
-1. Refresh the browser source
-2. Clear browser cache
-3. Check network connection
-4. Verify socket connection
+## 📱 **Mobile Optimization**
 
-### Performance Issues
-1. Reduce overlay opacity
-2. Use minimal theme
-3. Disable unnecessary features
-4. Check system resources
+### **Mobile Features**
+- **Touch-optimized** buttons and controls
+- **Responsive design** for all screen sizes
+- **Mobile navigation** bar with game status
+- **Voice input** support on mobile devices
+- **Landscape/portrait** mode support
 
-## 📱 Mobile Streaming
+### **Mobile Controls**
+- **Swipe gestures** for navigation
+- **Large touch targets** for easy interaction
+- **Haptic feedback** on supported devices
+- **Keyboard optimization** for text input
 
-For mobile streamers using apps like Streamlabs Mobile:
+## 🎵 **Audio System**
 
-1. Use the mobile-optimized overlay
-2. Set smaller font sizes
-3. Enable minimal mode
-4. Position overlay carefully on smaller screens
+### **Sound Effects**
+- **Game events** (start, round, voting, winner)
+- **Chaos mode** triggers and announcements
+- **UI interactions** (buttons, notifications)
+- **Crowd reactions** (cheer, laugh, gasp, boo)
 
-## 🎪 Pro Tips
+### **Background Music**
+- **Lobby music** while waiting
+- **Gameplay music** during rounds
+- **Voting music** during voting phase
+- **Results music** for announcements
+- **Chaos music** during chaos mode
 
-### Engagement
-- Use chaos mode alerts to build excitement
-- Highlight player reactions during voting
-- Celebrate winners with the trophy animation
-- Use speed rounds for high-energy moments
+### **Voice Integration**
+- **Text-to-speech** for prompts and announcements
+- **Voice input** for answers (optional)
+- **Accessibility** features for visually impaired
+- **Multiple language** support (coming soon)
 
-### Branding
-- Customize colors to match your brand
-- Use consistent overlay positioning
-- Create overlay presets for different content types
-- Integrate with your stream graphics
+## 🔥 **Chaos Mode**
 
-### Analytics
-- Monitor viewer engagement during overlay usage
-- Track which chaos modes get the best reactions
-- Use overlay data to improve game flow
-- Analyze voting patterns for content insights
+### **Random Events**
+- **Reverse voting** - Worst answer wins
+- **Speed round** - Faster time limits
+- **Double points** - Points are doubled
+- **Silent round** - No voice announcements
+- **Impersonation** - Answer as another player
+- **Rhyme time** - Answers must rhyme
+- **Backwards answers** - Type backwards
+- **Emoji only** - Use only emojis
+- **Score swap** - Players swap scores
+- **Voting roulette** - Random vote assignment
+- **Time bomb** - Decreasing time limits
+- **Self-voting** - Vote for yourself
 
-## 🔗 Support
+### **Chaos Triggers**
+- **Round-based** - Every 3-5 rounds
+- **Score-based** - When someone gets ahead
+- **Random** - 10% chance per round
+- **Manual** - Streamer can trigger anytime
 
-- **Discord**: Join our community for support
-- **Documentation**: Check our full documentation
-- **Updates**: Follow for new overlay features
-- **Feedback**: Share your overlay suggestions
+## 📈 **Analytics & Insights**
+
+### **Real-time Metrics**
+- **Player engagement** tracking
+- **Vote distribution** analysis
+- **Chaos mode** effectiveness
+- **Chat participation** rates
+- **Clip generation** statistics
+
+### **Performance Insights**
+- **Average response time** per round
+- **Most popular** answer types
+- **Voting patterns** analysis
+- **Player retention** metrics
+- **Peak engagement** times
+
+## 🚀 **Pro Tips**
+
+### **For Maximum Engagement**
+1. **Enable chat integration** early to build participation
+2. **Use chaos mode** strategically for excitement
+3. **Generate clips** of funny moments for social media
+4. **Customize branding** to match your stream theme
+5. **Monitor analytics** to understand what works
+
+### **For Content Creation**
+1. **Auto-clips** capture the best moments automatically
+2. **Manual clips** let you save specific highlights
+3. **Share clips** on social media to promote the game
+4. **Use custom branding** for professional appearance
+5. **Track engagement** to optimize your content
+
+### **For Community Building**
+1. **Let chat participate** to build community
+2. **Use chaos mode** to create memorable moments
+3. **Generate clips** for community highlights
+4. **Customize branding** to match community theme
+5. **Monitor participation** to encourage engagement
+
+## 🔧 **Technical Requirements**
+
+### **Minimum Specs**
+- **Browser**: Chrome 80+, Firefox 75+, Safari 13+
+- **Internet**: Stable broadband connection
+- **Audio**: Microphone for voice input (optional)
+- **Storage**: 100MB for game assets
+
+### **Recommended Specs**
+- **Browser**: Latest Chrome or Firefox
+- **Internet**: 10+ Mbps upload/download
+- **Audio**: USB microphone for voice input
+- **Storage**: 500MB for clips and assets
+
+## 🆘 **Troubleshooting**
+
+### **Common Issues**
+- **Audio not working** - Check browser permissions
+- **Chat not connecting** - Verify streamer tools enabled
+- **Clips not generating** - Check auto-clip settings
+- **Mobile issues** - Ensure responsive mode enabled
+
+### **Support**
+- **Documentation**: This guide
+- **Issues**: GitHub repository
+- **Community**: Discord server (coming soon)
+- **Updates**: Follow the project
+
+## 🎯 **Roadmap**
+
+### **Coming Soon**
+- **Twitch API integration** for real chat
+- **YouTube integration** for clips
+- **Discord bot** for community management
+- **Advanced analytics** dashboard
+- **Tournament mode** with brackets
+- **Team mode** for group competitions
+- **Custom prompt** creation
+- **Achievement system** with badges
+
+### **Future Features**
+- **VR support** for immersive gameplay
+- **AI-powered** prompt generation
+- **Multi-language** support
+- **Advanced streaming** overlays
+- **Mobile app** for iOS/Android
+- **Steam integration** for desktop version
 
 ---
 
-**Happy Streaming! 🎮✨**
-
-*HypeLoop - Where Chaos Meets Comedy* 
+**🎮 Ready to create the most engaging party game stream? Get started with HypeLoop today!** 

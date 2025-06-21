@@ -4,7 +4,32 @@ console.log("✅ Game component mounted");
 import React, { useState, useEffect, useRef } from "react";
 import socket from "../socket"; // 👈 adjust if path is different
 import VoiceService from "./voice";
+import audioManager from "./AudioManager";
+import AudioSettings from "./AudioSettings";
+import mobileOptimizer from "./MobileOptimizer";
+import MobileNav from "./MobileNav";
+import StreamerDashboard from "./StreamerDashboard";
+import ChatIntegration from "./ChatIntegration";
+import AutoClipGenerator from "./AutoClipGenerator";
+import AdvancedStreamerTools from "./AdvancedStreamerTools";
+import PowerUpShop from "./PowerUpShop";
+import Achievements from "./Achievements";
+import Leaderboard from "./Leaderboard";
+import Tournament from "./Tournament";
+import Friends from "./Friends";
+import Groups from "./Groups";
+import ActivityFeed from "./ActivityFeed";
+import powerUpService from "../services/PowerUpService";
+import socialService from "../services/SocialService";
 import "../App.css"; // 👈 adjust if needed
+import animationManager, { 
+  AnimatedButton, 
+  AnimatedCard, 
+  LoadingSpinner,
+  ParticleEffect,
+  ConfettiEffect,
+  useAnimations 
+} from './AnimationManager';
 
 export default function Game() {
   const [gameState, setGameState] = useState("join"); // join, waiting, answering, voting, results
@@ -33,20 +58,75 @@ export default function Game() {
   const [chaosAnnouncement, setChaosAnnouncement] = useState(null);
   const [showChaosAlert, setShowChaosAlert] = useState(false);
 
+  // Audio settings
+  const [showAudioSettings, setShowAudioSettings] = useState(false);
+
+  // Streamer tools
+  const [streamerTools, setStreamerTools] = useState({
+    dashboard: false,
+    chatIntegration: false,
+    autoClips: false,
+    advancedTools: false
+  });
+
+  // Animation states
+  const [showParticles, setShowParticles] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [chaosTriggered, setChaosTriggered] = useState(false);
+
+  // Power-up and Achievement system
+  const [showPowerUpShop, setShowPowerUpShop] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showTournament, setShowTournament] = useState(false);
+  const [activePowerUps, setActivePowerUps] = useState([]);
+  const [newAchievements, setNewAchievements] = useState([]);
+  const [playerId, setPlayerId] = useState(null);
+
+  // Social Features
+  const [showFriends, setShowFriends] = useState(false);
+  const [showGroups, setShowGroups] = useState(false);
+  const [showActivityFeed, setShowActivityFeed] = useState(false);
+  const [socialNotifications, setSocialNotifications] = useState([]);
+
+  const gameContainerRef = useRef(null);
+  const promptRef = useRef(null);
+  const timerRef = useRef(null);
+  const { elementRef: answerInputRef, animate: animateAnswerInput } = useAnimations();
+  const { elementRef: voteContainerRef, animate: animateVoteContainer } = useAnimations();
+
   useEffect(() => {
+    // Initialize mobile optimization
+    mobileOptimizer.optimizeForMobile();
+    
     // Initialize voice service
     voiceService.current = new VoiceService();
     setVoiceSupported(voiceService.current.isSupported());
+    
+    // Don't start music here - wait for user interaction
+    // audioManager.playMusic('lobby');
     
     // Socket event listeners
     socket.on("join-success", ({ room, name, roomState }) => {
       setGameState("waiting");
       setPlayers(Object.values(roomState.players || {}));
       setHypeCoins(roomState.hypeCoins || {});
+      
+      // Initialize power-up system for this player
+      const newPlayerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      setPlayerId(newPlayerId);
+      powerUpService.initializePlayer(newPlayerId);
+      
+      // Audio feedback
+      audioManager.playSound('notification');
+      
+      // Start lobby music after successful join
+      audioManager.playMusic('lobby');
     });
 
     socket.on("join-error", ({ message }) => {
       alert(`Join error: ${message}`);
+      audioManager.playSound('error');
     });
 
     socket.on("room-updated", ({ players, hypeCoins, chaosMode }) => {
@@ -62,6 +142,18 @@ export default function Game() {
       setRound(round);
       setHypeCoins(hypeCoins || {});
       setChaosMode(chaosMode);
+      
+      // Update player stats for game start
+      if (playerId) {
+        powerUpService.updatePlayerStats(playerId, {
+          answersSubmitted: 0,
+          votesCast: 0,
+          votesReceived: 0
+        });
+      }
+      
+      // Audio feedback
+      audioManager.playGameStart();
       
       // Voice announcement - only speak the prompt, not the game start
       if (voiceEnabled && voiceService.current) {
@@ -83,6 +175,9 @@ export default function Game() {
       setGameState("voting");
       setAnswers(answersForVoting);
       
+      // Audio feedback
+      audioManager.playMusic('voting');
+      
       // Voice announcement
       if (voiceEnabled && voiceService.current) {
         voiceService.current.speakVotingTime();
@@ -95,6 +190,16 @@ export default function Game() {
         ...prev,
         [votedPlayerId]: (prev[votedPlayerId] || 0) + 1
       }));
+      
+      // Update voting stats
+      if (playerId && voterId === playerId) {
+        powerUpService.updatePlayerStats(playerId, {
+          votesCast: (powerUpService.getPlayerStats(playerId).votesCast || 0) + 1
+        });
+      }
+      
+      // Audio feedback
+      audioManager.playVoteSubmit();
     });
 
     socket.on("round-results", ({ roundWinner, leaderboard, playerScoresThisRound, answers, votes, hypeCoins, chaosMode }) => {
@@ -105,6 +210,57 @@ export default function Game() {
       setVotes(votes);
       setHypeCoins(hypeCoins || {});
       setChaosMode(chaosMode);
+      
+      // Update player stats for round results
+      if (playerId) {
+        const stats = powerUpService.getPlayerStats(playerId);
+        const updates = {};
+        
+        // Check if player won
+        if (roundWinner && roundWinner.id === playerId) {
+          updates.roundsWon = (stats.roundsWon || 0) + 1;
+          updates.currentWinStreak = (stats.currentWinStreak || 0) + 1;
+          updates.maxWinStreak = Math.max(stats.maxWinStreak || 0, (stats.currentWinStreak || 0) + 1);
+          
+          // Check for chaos win
+          if (chaosMode) {
+            updates.chaosWins = (stats.chaosWins || 0) + 1;
+          }
+          
+          // Check for perfect round (all votes)
+          const playerVotes = Object.values(votes).filter(vote => vote === playerId).length;
+          if (playerVotes === Object.keys(votes).length) {
+            updates.perfectRounds = (stats.perfectRounds || 0) + 1;
+          }
+        } else {
+          updates.currentWinStreak = 0;
+        }
+        
+        // Update votes received
+        const votesReceived = Object.values(votes).filter(vote => vote === playerId).length;
+        updates.votesReceived = (stats.votesReceived || 0) + votesReceived;
+        
+        // Award coins for participation
+        updates.coins = (stats.coins || 0) + 10; // Base participation reward
+        
+        powerUpService.updatePlayerStats(playerId, updates);
+        
+        // Check for new achievements
+        const newAchievements = powerUpService.checkAchievements(playerId);
+        if (newAchievements.length > 0) {
+          setNewAchievements(newAchievements);
+          setTimeout(() => setNewAchievements([]), 5000); // Clear after 5 seconds
+          
+          // Audio feedback for achievements
+          audioManager.playSound('ding');
+        }
+      }
+      
+      // End round for power-up system
+      powerUpService.endRound({ players });
+      
+      // Audio feedback
+      audioManager.playWinner();
       
       // Voice announcement
       if (voiceEnabled && voiceService.current && roundWinner) {
@@ -125,11 +281,17 @@ export default function Game() {
       setHypeCoins(hypeCoins || {});
       setChaosMode(chaosMode);
       
+      // Audio feedback
+      audioManager.playRoundStart();
+      
       // Show chaos announcement
       if (chaosAnnouncement) {
         setChaosAnnouncement(chaosAnnouncement);
         setShowChaosAlert(true);
         setTimeout(() => setShowChaosAlert(false), 5000); // Hide after 5 seconds
+        
+        // Chaos audio
+        audioManager.playChaosTrigger();
       }
       
       // Voice announcement
@@ -147,35 +309,126 @@ export default function Game() {
         voiceService.current.stopListening();
         voiceService.current.stopSpeaking();
       }
+      audioManager.cleanup();
     };
   }, [voiceEnabled]);
 
+  useEffect(() => {
+    // Cleanup animations on unmount
+    return () => {
+      animationManager.cleanup();
+    };
+  }, []);
+
+  // Animation effects for game events
+  useEffect(() => {
+    if (gameState === 'answering' && currentPrompt) {
+      // Animate prompt appearance
+      if (promptRef.current) {
+        animationManager.fadeIn(promptRef.current);
+      }
+      
+      // Animate answer input
+      if (answerInputRef.current) {
+        animationManager.slideIn(answerInputRef.current, 'up');
+      }
+    }
+  }, [gameState, currentPrompt]);
+
+  useEffect(() => {
+    if (gameState === 'voting' && answers.length > 0) {
+      // Animate voting options
+      if (voteContainerRef.current) {
+        animationManager.fadeIn(voteContainerRef.current);
+      }
+    }
+  }, [gameState, answers]);
+
+  useEffect(() => {
+    if (roundWinner) {
+      // Celebrate winner
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+      
+      if (gameContainerRef.current) {
+        animationManager.celebrateWinner(gameContainerRef.current);
+      }
+    }
+  }, [roundWinner]);
+
+  useEffect(() => {
+    if (chaosMode && chaosAnnouncement) {
+      // Chaos mode animations
+      setChaosTriggered(true);
+      animationManager.triggerChaosShake();
+      
+      if (gameContainerRef.current) {
+        animationManager.triggerChaosGlow(gameContainerRef.current);
+      }
+      
+      setTimeout(() => setChaosTriggered(false), 2000);
+    }
+  }, [chaosMode, chaosAnnouncement]);
+
   const joinRoom = () => {
-    if (!name || !room) {
-      alert("Please enter your name and room code!");
+    if (!name.trim() || !room.trim()) {
+      alert("Please enter both name and room code");
       return;
     }
-    socket.emit("join-room", { name, room, theme: { name: theme } });
+
+    // Animate join button
+    if (gameContainerRef.current) {
+      animationManager.pulseElement(gameContainerRef.current, 1000);
+    }
+
+    socket.emit("join-room", { name, room });
   };
 
   const startGame = () => {
-    socket.emit("start-game", { room });
+    // Animate start button
+    if (gameContainerRef.current) {
+      animationManager.bounce(gameContainerRef.current, 0.2);
+    }
+
+    socket.emit("start-game");
   };
 
   const submitAnswer = () => {
-    if (!answerText.trim()) {
-      alert("Please enter an answer!");
-      return;
+    if (!answerText.trim()) return;
+
+    // Animate submission
+    if (answerInputRef.current) {
+      animationManager.bounce(answerInputRef.current, 0.1);
     }
-    socket.emit("submit-answer", { room, answer: answerText.trim() });
+
+    // Update player stats for answer submission
+    if (playerId) {
+      powerUpService.updatePlayerStats(playerId, {
+        answersSubmitted: (powerUpService.getPlayerStats(playerId).answersSubmitted || 0) + 1
+      });
+    }
+
+    socket.emit("submit-answer", { answer: answerText });
+    setAnswerText("");
   };
 
   const submitVote = (votedPlayerId) => {
-    socket.emit("submit-vote", { room, votedPlayerId });
+    // Animate vote
+    const voteElement = document.getElementById(`vote-${votedPlayerId}`);
+    if (voteElement) {
+      animationManager.animateVoteCount(voteElement);
+    }
+
+    socket.emit("submit-vote", { votedPlayerId });
   };
 
   const nextRound = () => {
-    socket.emit("next-round", { room });
+    // Animate next round button
+    if (gameContainerRef.current) {
+      animationManager.pulseElement(gameContainerRef.current, 1000);
+    }
+
+    socket.emit("next-round");
   };
 
   // Voice input functions
@@ -186,10 +439,12 @@ export default function Game() {
       (transcript) => {
         setAnswerText(transcript);
         setIsListening(false);
+        audioManager.playSound('ding');
       },
       (error) => {
         console.error('Voice input error:', error);
         setIsListening(false);
+        audioManager.playSound('error');
         if (error === 'not-allowed') {
           alert('Please allow microphone access to use voice input.');
         }
@@ -198,6 +453,7 @@ export default function Game() {
     
     if (success) {
       setIsListening(true);
+      audioManager.playSound('beep');
     }
   };
 
@@ -210,103 +466,416 @@ export default function Game() {
 
   const toggleVoice = () => {
     setVoiceEnabled(!voiceEnabled);
+    audioManager.playButtonClick();
+  };
+
+  // Audio settings
+  const openAudioSettings = () => {
+    setShowAudioSettings(true);
+    audioManager.playButtonClick();
+  };
+
+  const closeAudioSettings = () => {
+    setShowAudioSettings(false);
+    audioManager.playButtonClick();
+  };
+
+  const leaveGame = () => {
+    socket.emit("leave-room");
+    audioManager.stopMusic();
+    voiceService.current?.stopSpeaking();
+    // Navigate back to join screen
+    setGameState("join");
+  };
+
+  // Streamer tool handlers
+  const toggleStreamerTool = (tool) => {
+    setStreamerTools(prev => ({
+      ...prev,
+      [tool]: !prev[tool]
+    }));
+  };
+
+  const handleChatCommand = (command, data) => {
+    console.log('Chat command received:', command, data);
+    
+    switch (command) {
+      case 'join':
+        // Add chat user as a player
+        const chatPlayer = {
+          id: `chat_${Date.now()}`,
+          name: data.username,
+          isChatUser: true,
+          score: 0,
+          isActive: true
+        };
+        setPlayers(prev => [...prev, chatPlayer]);
+        break;
+        
+      case 'vote':
+        // Handle chat vote
+        if (data.playerName && gameState === 'voting') {
+          const targetPlayer = players.find(p => 
+            p.name.toLowerCase().includes(data.playerName.toLowerCase())
+          );
+          if (targetPlayer) {
+            submitVote(targetPlayer.id);
+          }
+        }
+        break;
+        
+      case 'chaos':
+        // Request chaos mode
+        if (gameState === 'answering' || gameState === 'voting') {
+          // This would trigger chaos mode on the server
+          console.log('Chat requested chaos mode');
+        }
+        break;
+        
+      case 'stats':
+        // Show stats to chat
+        const stats = {
+          players: players.length,
+          round: round,
+          gameState: gameState,
+          chaosMode: chaosMode
+        };
+        console.log('Game stats:', stats);
+        break;
+        
+      case 'help':
+        // Show help to chat
+        console.log('Available commands: !join, !vote [player], !chaos, !stats, !help');
+        break;
+        
+      default:
+        break;
+    }
+  };
+
+  // Advanced Streamer Tools functions
+  const openAdvancedStreamerTools = () => {
+    setStreamerTools(prev => ({ ...prev, advancedTools: true }));
+    audioManager.playButtonClick();
+  };
+
+  const closeAdvancedStreamerTools = () => {
+    setStreamerTools(prev => ({ ...prev, advancedTools: false }));
+    audioManager.playButtonClick();
+  };
+
+  // Power-up and Achievement system functions
+  const openPowerUpShop = () => {
+    setShowPowerUpShop(true);
+    audioManager.playButtonClick();
+  };
+
+  const closePowerUpShop = () => {
+    setShowPowerUpShop(false);
+    audioManager.playButtonClick();
+  };
+
+  const handlePowerUpPurchase = (result) => {
+    const { powerUp, effect, remainingCoins } = result;
+    
+    // Show power-up effect
+    if (effect.message) {
+      // You could show a toast notification here
+      console.log('Power-up activated:', effect.message);
+    }
+    
+    // Handle special power-up actions
+    if (effect.action) {
+      switch (effect.action) {
+        case 'voteSteal':
+          // Enable vote stealing UI
+          console.log('Vote steal power-up activated');
+          break;
+        case 'answerReveal':
+          // Enable answer peeking UI
+          console.log('Answer reveal power-up activated');
+          break;
+        case 'skipRound':
+          // Skip the current round
+          console.log('Skip round power-up activated');
+          break;
+        case 'triggerChaos':
+          // Trigger chaos mode
+          console.log('Chaos trigger power-up activated');
+          break;
+        default:
+          break;
+      }
+    }
+    
+    // Update coins display
+    setHypeCoins(prev => ({
+      ...prev,
+      [playerId]: remainingCoins
+    }));
+    
+    // Audio feedback
+    audioManager.playSound('ding');
+    
+    closePowerUpShop();
+  };
+
+  const openAchievements = () => {
+    setShowAchievements(true);
+    audioManager.playButtonClick();
+  };
+
+  const closeAchievements = () => {
+    setShowAchievements(false);
+    audioManager.playButtonClick();
+  };
+
+  const openLeaderboard = () => {
+    setShowLeaderboard(true);
+    audioManager.playButtonClick();
+  };
+
+  const closeLeaderboard = () => {
+    setShowLeaderboard(false);
+    audioManager.playButtonClick();
+  };
+
+  const getPlayerStats = () => {
+    if (!playerId) return null;
+    return powerUpService.getPlayerStats(playerId);
+  };
+
+  const getAvailablePowerUps = () => {
+    if (!playerId) return [];
+    return powerUpService.getAvailablePowerUps(playerId);
+  };
+
+  // Tournament functions
+  const openTournament = () => {
+    setShowTournament(true);
+    audioManager.playButtonClick();
+  };
+
+  const closeTournament = () => {
+    setShowTournament(false);
+    audioManager.playButtonClick();
+  };
+
+  const handleJoinTournament = (tournament) => {
+    console.log('Joining tournament:', tournament);
+    // Here you would implement the actual tournament joining logic
+    // For now, just show a notification
+    alert(`Joined ${tournament.name}! Tournament starts in ${tournament.startTime}`);
+  };
+
+  // Social Features functions
+  const openFriends = () => {
+    setShowFriends(true);
+    audioManager.playButtonClick();
+  };
+
+  const closeFriends = () => {
+    setShowFriends(false);
+    audioManager.playButtonClick();
+  };
+
+  const openGroups = () => {
+    setShowGroups(true);
+    audioManager.playButtonClick();
+  };
+
+  const closeGroups = () => {
+    setShowGroups(false);
+    audioManager.playButtonClick();
+  };
+
+  const openActivityFeed = () => {
+    setShowActivityFeed(true);
+    audioManager.playButtonClick();
+  };
+
+  const closeActivityFeed = () => {
+    setShowActivityFeed(false);
+    audioManager.playButtonClick();
+  };
+
+  const addSocialNotification = (notification) => {
+    setSocialNotifications(prev => [...prev, notification]);
+    setTimeout(() => {
+      setSocialNotifications(prev => prev.filter(n => n.id !== notification.id));
+    }, 5000);
   };
 
   const renderJoinScreen = () => (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-pink-900 to-red-900 flex items-center justify-center p-4">
-      <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-8 max-w-md w-full border border-purple-500/30">
-        <h1 className="text-4xl font-bold text-center mb-8 text-white">
-          🎮 HypeLoop
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <AnimatedCard className="w-full max-w-md">
+        <h1 className="text-3xl font-bold text-center mb-8 text-purple-600">
+          HypeLoop
         </h1>
-        <p className="text-center text-purple-300 mb-6">
-          The AI-Fueled Party Game
-        </p>
         
         <div className="space-y-4">
-          <input
-            type="text"
-            placeholder="Your Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full p-3 bg-white/10 border border-purple-500/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Your Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your name"
+              className="input-field w-full"
+              maxLength={20}
+            />
+          </div>
           
-          <input
-            type="text"
-            placeholder="Room Code"
-            value={room}
-            onChange={(e) => setRoom(e.target.value)}
-            className="w-full p-3 bg-white/10 border border-purple-500/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Room Code
+            </label>
+            <input
+              type="text"
+              value={room}
+              onChange={(e) => setRoom(e.target.value.toUpperCase())}
+              placeholder="Enter room code"
+              className="input-field w-full"
+              maxLength={6}
+            />
+          </div>
           
-          <select
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-            className="w-full p-3 bg-white/10 border border-purple-500/50 rounded-lg text-white focus:outline-none focus:border-purple-400"
-          >
-            <option value="general">🎭 General Chaos</option>
-            <option value="roast">🔥 Roast Mode</option>
-            <option value="streamer">📺 Streamer Mode</option>
-          </select>
-          
-          {voiceSupported && (
-            <div className="flex items-center justify-between p-3 bg-white/10 rounded-lg">
-              <span className="text-white">🎤 Voice Features</span>
-              <button
-                onClick={toggleVoice}
-                className={`px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${
-                  voiceEnabled 
-                    ? 'bg-green-600 hover:bg-green-700 text-white' 
-                    : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
-                }`}
-              >
-                {voiceEnabled ? 'Enabled' : 'Disabled'}
-              </button>
-            </div>
-          )}
-          
-          <button
+          <AnimatedButton 
             onClick={joinRoom}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+            className="w-full"
+            disabled={!name.trim() || !room.trim()}
           >
-            Join Game
-          </button>
+            Join Room
+          </AnimatedButton>
         </div>
-      </div>
+      </AnimatedCard>
     </div>
   );
 
   const renderWaitingScreen = () => (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-pink-900 to-red-900 flex items-center justify-center p-4">
-      <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-8 max-w-2xl w-full border border-purple-500/30">
-        <h2 className="text-3xl font-bold text-center mb-6 text-white">
-          Waiting for Players
-        </h2>
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <AnimatedCard className="w-full max-w-md">
+        <h2 className="text-2xl font-bold text-center mb-6">Waiting Room</h2>
+        <p className="text-center text-gray-600 mb-6">Room: {room}</p>
+        
+        {/* Player Stats and Power-ups */}
+        {playerId && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-purple-700">Your Stats</h3>
+              <div className="text-2xl font-bold text-yellow-600">
+                🪙 {getPlayerStats()?.coins || 0}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+              <div className="text-center">
+                <div className="font-bold text-blue-600">{getPlayerStats()?.roundsWon || 0}</div>
+                <div className="text-gray-600">Wins</div>
+              </div>
+              <div className="text-center">
+                <div className="font-bold text-green-600">{getPlayerStats()?.achievements?.size || 0}</div>
+                <div className="text-gray-600">Achievements</div>
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <button
+                onClick={openPowerUpShop}
+                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-2 px-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm"
+              >
+                ⚡ Power-ups
+              </button>
+              <button
+                onClick={openAchievements}
+                className="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-2 px-3 rounded-lg font-semibold hover:from-yellow-600 hover:to-yellow-700 transition-all duration-200 text-sm"
+              >
+                🏆 Achievements
+              </button>
+            </div>
+          </div>
+        )}
         
         <div className="mb-6">
-          <h3 className="text-xl text-white mb-4">Players in Room:</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <h3 className="text-lg font-semibold mb-3">Players ({players.length})</h3>
+          <div className="space-y-2">
             {players.map((player) => (
-              <div key={player.id} className="bg-white/10 rounded-lg p-4 text-center">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full mx-auto mb-2 flex items-center justify-center text-white font-bold">
-                  {player.name.charAt(0).toUpperCase()}
-                </div>
-                <p className="text-white font-semibold">{player.name}</p>
-                <p className="text-purple-300 text-sm">💰 {hypeCoins[player.id] || 0}</p>
+              <div key={player.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span className="font-medium">{player.name}</span>
+                {player.isHost && (
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    Host
+                  </span>
+                )}
               </div>
             ))}
           </div>
         </div>
         
-        {players.length >= 1 && (
-          <button
+        {players.find(p => p.isHost)?.name === name && (
+          <AnimatedButton 
             onClick={startGame}
-            className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+            className="w-full"
+            disabled={players.length < 2}
           >
-            Start Game ({players.length} players)
-          </button>
+            Start Game
+          </AnimatedButton>
         )}
-      </div>
+        
+        {players.find(p => p.isHost)?.name !== name && (
+          <p className="text-center text-gray-500">
+            Waiting for host to start the game...
+          </p>
+        )}
+        
+        {/* Leaderboard Button */}
+        <button
+          onClick={openLeaderboard}
+          className="w-full mt-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-purple-600 hover:to-purple-700 transition-all duration-200"
+        >
+          📊 View Leaderboard
+        </button>
+        
+        {/* Tournament Button */}
+        <button
+          onClick={openTournament}
+          className="w-full mt-2 bg-gradient-to-r from-orange-500 to-red-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition-all duration-200"
+        >
+          🏆 Join Tournaments
+        </button>
+
+        {/* Social Features Buttons */}
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <button
+            onClick={openFriends}
+            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-3 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-sm"
+          >
+            👥 Friends
+          </button>
+          <button
+            onClick={openGroups}
+            className="bg-gradient-to-r from-green-500 to-green-600 text-white py-2 px-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm"
+          >
+            👥 Groups
+          </button>
+          <button
+            onClick={openActivityFeed}
+            className="bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2 px-3 rounded-lg font-semibold hover:from-purple-600 hover:to-purple-700 transition-all duration-200 text-sm"
+          >
+            📱 Feed
+          </button>
+        </div>
+
+        {/* Streamer Tools Button */}
+        <button
+          onClick={openAdvancedStreamerTools}
+          className="w-full mt-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all duration-200"
+        >
+          🎮 Advanced Streamer Tools
+        </button>
+      </AnimatedCard>
     </div>
   );
 
@@ -336,6 +905,40 @@ export default function Game() {
               🌀 {chaosMode.name}
             </div>
           )}
+          
+          {/* Power-up Status */}
+          {playerId && (
+            <div className="mt-4 flex items-center justify-center space-x-4">
+              <div className="bg-black/30 backdrop-blur-sm rounded-lg px-4 py-2 border border-purple-500/30">
+                <div className="text-yellow-400 font-bold text-lg">
+                  🪙 {getPlayerStats()?.coins || 0}
+                </div>
+                <div className="text-purple-300 text-xs">Coins</div>
+              </div>
+              
+              <button
+                onClick={openPowerUpShop}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200"
+              >
+                ⚡ Power-ups
+              </button>
+              
+              {/* Active Power-ups */}
+              {activePowerUps.length > 0 && (
+                <div className="flex space-x-2">
+                  {activePowerUps.map((powerUp, index) => (
+                    <div
+                      key={index}
+                      className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs px-2 py-1 rounded-full animate-pulse"
+                      title={`${powerUp.name} - ${powerUp.roundsLeft} rounds left`}
+                    >
+                      {powerUp.icon} {powerUp.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Prompt */}
@@ -357,6 +960,7 @@ export default function Game() {
         {/* Answer Input */}
         <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-8 mb-8 border border-purple-500/30">
           <textarea
+            ref={answerInputRef}
             value={answerText}
             onChange={(e) => setAnswerText(e.target.value)}
             placeholder={
@@ -558,6 +1162,23 @@ export default function Game() {
   const renderResultsScreen = () => (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-pink-900 to-red-900 p-4">
       <div className="max-w-4xl mx-auto">
+        {/* Achievement Notifications */}
+        {newAchievements.length > 0 && (
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
+            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold py-4 px-8 rounded-2xl border-2 border-yellow-600 shadow-2xl animate-bounce">
+              <div className="text-center">
+                <div className="text-2xl mb-2">🏆</div>
+                <div className="text-lg font-bold">Achievement Unlocked!</div>
+                {newAchievements.map((achievement, index) => (
+                  <div key={index} className="text-sm">
+                    {achievement.icon} {achievement.name} (+{achievement.points} coins)
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Winner */}
         {roundWinner && (
           <div className="text-center mb-8">
@@ -629,6 +1250,64 @@ export default function Game() {
           </div>
         </div>
 
+        {/* Power-up and Achievement Buttons */}
+        {playerId && (
+          <div className="flex justify-center space-x-4 mb-8">
+            <button
+              onClick={openPowerUpShop}
+              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
+            >
+              ⚡ Power-up Shop
+            </button>
+            <button
+              onClick={openAchievements}
+              className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
+            >
+              🏆 Achievements
+            </button>
+            <button
+              onClick={openLeaderboard}
+              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
+            >
+              📊 Leaderboard
+            </button>
+          </div>
+        )}
+
+        {/* Social Features Buttons */}
+        {playerId && (
+          <div className="flex justify-center space-x-4 mb-8">
+            <button
+              onClick={openFriends}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
+            >
+              👥 Friends
+            </button>
+            <button
+              onClick={openGroups}
+              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
+            >
+              👥 Groups
+            </button>
+            <button
+              onClick={openActivityFeed}
+              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
+            >
+              📱 Activity Feed
+            </button>
+          </div>
+        )}
+
+        {/* Streamer Tools Button */}
+        <div className="text-center mb-8">
+          <button
+            onClick={openAdvancedStreamerTools}
+            className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
+          >
+            🎮 Advanced Streamer Tools
+          </button>
+        </div>
+
         {/* Next Round Button */}
         <div className="text-center">
           <button
@@ -642,19 +1321,157 @@ export default function Game() {
     </div>
   );
 
-  // Render based on game state
-  switch (gameState) {
-    case "join":
-      return renderJoinScreen();
-    case "waiting":
-      return renderWaitingScreen();
-    case "answering":
-      return renderAnswerScreen();
-    case "voting":
-      return renderVotingScreen();
-    case "results":
-      return renderResultsScreen();
-    default:
-      return renderJoinScreen();
-  }
+  return (
+    <div className="min-h-screen p-4">
+      {/* Mobile Navigation */}
+      {mobileOptimizer.isMobile() && (
+        <MobileNav 
+          gameState={gameState}
+          round={round}
+          chaosMode={chaosMode}
+          audioSettings={audioSettings}
+          onVoiceToggle={toggleVoice}
+          isListening={isListening}
+        />
+      )}
+
+      {/* Audio Settings */}
+      {showAudioSettings && (
+        <AudioSettings 
+          onClose={closeAudioSettings}
+          audioSettings={audioSettings}
+        />
+      )}
+
+      {/* Main Game Container */}
+      <div 
+        ref={gameContainerRef}
+        className={`game-container max-w-4xl mx-auto ${chaosTriggered ? 'chaos-trigger' : ''}`}
+      >
+        {/* Chaos Mode Alert */}
+        {showChaosAlert && chaosAnnouncement && (
+          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg chaos-glow">
+            <h3 className="font-bold text-lg mb-2">🔥 CHAOS MODE ACTIVATED! 🔥</h3>
+            <p>{chaosAnnouncement}</p>
+          </div>
+        )}
+
+        {/* Game State Rendering */}
+        {gameState === "join" && renderJoinScreen()}
+        {gameState === "waiting" && renderWaitingScreen()}
+        {gameState === "answering" && renderAnswerScreen()}
+        {gameState === "voting" && renderVotingScreen()}
+        {gameState === "results" && renderResultsScreen()}
+      </div>
+
+      {/* Particle Effects */}
+      <ParticleEffect 
+        trigger={showParticles}
+        x={window.innerWidth / 2}
+        y={window.innerHeight / 2}
+        count={30}
+        color="#667eea"
+      />
+
+      {/* Confetti Effect */}
+      <ConfettiEffect 
+        trigger={showConfetti}
+        x={window.innerWidth / 2}
+        y={0}
+        count={100}
+      />
+
+      {/* Streamer Tools */}
+      <StreamerDashboard
+        gameState={gameState}
+        players={players}
+        currentPrompt={currentPrompt}
+        chaosMode={chaosMode}
+        onChatCommand={handleChatCommand}
+      />
+
+      <ChatIntegration
+        enabled={streamerTools.chatIntegration}
+        onChatCommand={handleChatCommand}
+        gameState={gameState}
+        players={players}
+        currentPrompt={currentPrompt}
+        chaosMode={chaosMode}
+        onToggle={() => toggleStreamerTool('chatIntegration')}
+      />
+
+      <AutoClipGenerator
+        enabled={streamerTools.autoClips}
+        gameState={gameState}
+        players={players}
+        currentPrompt={currentPrompt}
+        chaosMode={chaosMode}
+        roundWinner={roundWinner}
+        onToggle={() => toggleStreamerTool('autoClips')}
+      />
+
+      {/* Advanced Streamer Tools */}
+      {streamerTools.advancedTools && (
+        <AdvancedStreamerTools
+          onClose={closeAdvancedStreamerTools}
+        />
+      )}
+
+      {/* Power-up Shop */}
+      {showPowerUpShop && (
+        <PowerUpShop
+          playerId={playerId}
+          onPurchase={handlePowerUpPurchase}
+          onClose={closePowerUpShop}
+        />
+      )}
+
+      {/* Achievements */}
+      {showAchievements && (
+        <Achievements
+          playerId={playerId}
+          onClose={closeAchievements}
+        />
+      )}
+
+      {/* Leaderboard */}
+      {showLeaderboard && (
+        <Leaderboard
+          onClose={closeLeaderboard}
+        />
+      )}
+
+      {/* Tournament */}
+      {showTournament && (
+        <Tournament
+          onClose={closeTournament}
+          onJoinTournament={handleJoinTournament}
+        />
+      )}
+
+      {/* Friends */}
+      {showFriends && (
+        <Friends
+          playerId={playerId}
+          onClose={closeFriends}
+        />
+      )}
+
+      {/* Groups */}
+      {showGroups && (
+        <Groups
+          playerId={playerId}
+          onClose={closeGroups}
+        />
+      )}
+
+      {/* Activity Feed */}
+      {showActivityFeed && (
+        <ActivityFeed
+          playerId={playerId}
+          onClose={closeActivityFeed}
+        />
+      )}
+    </div>
+  );
 }

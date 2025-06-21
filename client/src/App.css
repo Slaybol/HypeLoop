@@ -1,3 +1,378 @@
+/* Base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Smooth page transitions */
+.page-transition {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Button animations and polish */
+.btn {
+  position: relative;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+}
+
+.btn:active {
+  transform: translateY(0);
+  transition: transform 0.1s;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Ripple effect for buttons */
+.btn .ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0);
+  animation: ripple 0.6s linear;
+  pointer-events: none;
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Ripple effect for buttons */
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Card animations */
+.card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: cardSlideIn 0.6s ease-out;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes cardSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Game state transitions */
+.game-state-transition {
+  animation: stateChange 0.5s ease-in-out;
+}
+
+@keyframes stateChange {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Loading animations */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Chaos mode animations */
+.chaos-trigger {
+  animation: chaosShake 0.8s ease-in-out;
+}
+
+@keyframes chaosShake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.chaos-glow {
+  animation: chaosGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes chaosGlow {
+  from {
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+  }
+  to {
+    box-shadow: 0 0 40px rgba(255, 0, 0, 0.8);
+  }
+}
+
+/* Vote animations */
+.vote-count {
+  animation: votePop 0.3s ease-out;
+}
+
+@keyframes votePop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.vote-submitted {
+  animation: voteSubmit 0.5s ease-out;
+}
+
+@keyframes voteSubmit {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Winner celebration */
+.winner-celebration {
+  animation: winnerBounce 0.6s ease-out;
+}
+
+@keyframes winnerBounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Particle effects */
+.particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #ffd700;
+  border-radius: 50%;
+  animation: particleFloat 3s ease-out forwards;
+}
+
+@keyframes particleFloat {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-100px) scale(0);
+  }
+}
+
+/* Confetti effect */
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  animation: confettiFall 3s linear forwards;
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* Input animations */
+.input-field {
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Timer animations */
+.timer {
+  animation: timerPulse 1s ease-in-out infinite;
+}
+
+@keyframes timerPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.timer-warning {
+  animation: timerWarning 0.5s ease-in-out infinite;
+}
+
+@keyframes timerWarning {
+  0%, 100% { 
+    transform: scale(1);
+    color: #ff6b6b;
+  }
+  50% { 
+    transform: scale(1.1);
+    color: #ff4757;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .card {
+    margin: 12px;
+    padding: 20px;
+  }
+  
+  .btn {
+    padding: 14px 20px;
+    font-size: 16px;
+  }
+  
+  .input-field {
+    padding: 14px 16px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus indicators for accessibility */
+.btn:focus,
+.input-field:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .card {
+    background: rgba(30, 30, 30, 0.95);
+    color: white;
+  }
+  
+  .input-field {
+    background: rgba(50, 50, 50, 0.9);
+    color: white;
+  }
+}
+
 /* Minimal fallback, customize later */
 body {
   font-family: "VT323", monospace;
@@ -5,4 +380,209 @@ body {
   color: white;
   margin: 0;
   padding: 1rem;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  /* Mobile text sizing */
+  h1 { font-size: 2rem !important; }
+  h2 { font-size: 1.5rem !important; }
+  h3 { font-size: 1.25rem !important; }
+  p { font-size: 1rem !important; line-height: 1.5; }
+
+  /* Mobile spacing */
+  .mobile-optimized {
+    padding: 12px !important;
+    margin: 8px !important;
+  }
+
+  /* Mobile cards */
+  .mobile-card {
+    margin: 8px !important;
+    padding: 16px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Mobile grids */
+  .mobile-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Mobile button groups */
+  .mobile-button-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .mobile-button-group button {
+    width: 100% !important;
+    padding: 12px !important;
+    font-size: 1rem !important;
+    min-height: 44px !important;
+  }
+
+  /* Mobile inputs */
+  input, textarea, select {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    min-height: 44px !important;
+  }
+
+  /* Mobile touch optimizations */
+  button {
+    min-height: 44px !important;
+    min-width: 44px !important;
+    touch-action: manipulation !important;
+  }
+
+  /* Mobile navigation spacing */
+  .mobile-nav {
+    padding-bottom: 80px !important; /* Account for mobile nav bar */
+  }
+
+  /* Mobile answer cards */
+  .answer-card {
+    margin: 8px 0 !important;
+    padding: 16px !important;
+  }
+
+  /* Mobile voting cards */
+  .voting-card {
+    margin: 8px 0 !important;
+    padding: 16px !important;
+  }
+
+  /* Mobile results cards */
+  .results-card {
+    margin: 8px 0 !important;
+    padding: 16px !important;
+  }
+
+  /* Mobile player cards */
+  .player-card {
+    margin: 8px 0 !important;
+    padding: 12px !important;
+  }
+
+  /* Mobile prompt text */
+  .prompt-text {
+    font-size: 1.5rem !important;
+    line-height: 1.3 !important;
+    padding: 16px !important;
+  }
+
+  /* Mobile chaos alerts */
+  .chaos-alert {
+    font-size: 1rem !important;
+    padding: 12px 16px !important;
+    margin: 8px !important;
+  }
+
+  /* Mobile leaderboard */
+  .leaderboard-item {
+    padding: 12px !important;
+    margin: 4px 0 !important;
+  }
+
+  /* Mobile waiting screen */
+  .waiting-screen {
+    padding: 16px !important;
+  }
+
+  .waiting-screen .player-list {
+    gap: 8px !important;
+  }
+
+  /* Mobile answer input */
+  .answer-input {
+    min-height: 100px !important;
+    font-size: 16px !important;
+  }
+
+  /* Mobile voice controls */
+  .voice-controls {
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+  }
+
+  .voice-controls button {
+    flex: 1 !important;
+    min-width: 120px !important;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .mobile-optimized {
+    padding: 16px !important;
+  }
+
+  .mobile-card {
+    padding: 20px !important;
+  }
+
+  .mobile-button-group {
+    gap: 12px !important;
+  }
+}
+
+/* Landscape mobile optimizations */
+@media (max-width: 768px) and (orientation: landscape) {
+  .mobile-nav {
+    padding-bottom: 60px !important;
+  }
+
+  .mobile-optimized {
+    padding: 8px !important;
+  }
+
+  .mobile-card {
+    padding: 12px !important;
+  }
+
+  h1 { font-size: 1.5rem !important; }
+  h2 { font-size: 1.25rem !important; }
+  h3 { font-size: 1.1rem !important; }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover effects on touch devices */
+  button:hover {
+    transform: none !important;
+  }
+
+  /* Add active states for touch feedback */
+  button:active {
+    transform: scale(0.95) !important;
+    transition: transform 0.1s ease !important;
+  }
+
+  /* Optimize scrolling */
+  * {
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .mobile-card {
+    border-width: 0.5px !important;
+  }
+
+  .mobile-nav {
+    border-top-width: 0.5px !important;
+  }
+}
+
+/* Dark mode optimizations for mobile */
+@media (prefers-color-scheme: dark) {
+  .mobile-card {
+    background: rgba(0, 0, 0, 0.7) !important;
+  }
+
+  .mobile-nav {
+    background: rgba(0, 0, 0, 0.95) !important;
+  }
 }
