@@ -12,6 +12,7 @@ import StreamerDashboard from "./StreamerDashboard";
 import ChatIntegration from "./ChatIntegration";
 import AutoClipGenerator from "./AutoClipGenerator";
 import AdvancedStreamerTools from "./AdvancedStreamerTools";
+import MobilePrototype from "./MobilePrototype";
 import PowerUpShop from "./PowerUpShop";
 import Achievements from "./Achievements";
 import Leaderboard from "./Leaderboard";
@@ -88,6 +89,9 @@ export default function Game() {
   const [showGroups, setShowGroups] = useState(false);
   const [showActivityFeed, setShowActivityFeed] = useState(false);
   const [socialNotifications, setSocialNotifications] = useState([]);
+
+  // Platform Expansion
+  const [showMobilePrototype, setShowMobilePrototype] = useState(false);
 
   const gameContainerRef = useRef(null);
   const promptRef = useRef(null);
@@ -706,6 +710,17 @@ export default function Game() {
     }, 5000);
   };
 
+  // Platform Expansion functions
+  const openMobilePrototype = () => {
+    setShowMobilePrototype(true);
+    audioManager.playButtonClick();
+  };
+
+  const closeMobilePrototype = () => {
+    setShowMobilePrototype(false);
+    audioManager.playButtonClick();
+  };
+
   const renderJoinScreen = () => (
     <div className="min-h-screen flex items-center justify-center p-4">
       <AnimatedCard className="w-full max-w-md">
@@ -874,6 +889,14 @@ export default function Game() {
           className="w-full mt-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all duration-200"
         >
           🎮 Advanced Streamer Tools
+        </button>
+
+        {/* Platform Expansion Button */}
+        <button
+          onClick={openMobilePrototype}
+          className="w-full mt-2 bg-gradient-to-r from-orange-500 to-red-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition-all duration-200"
+        >
+          🚀 Platform Expansion
         </button>
       </AnimatedCard>
     </div>
@@ -1470,6 +1493,13 @@ export default function Game() {
         <ActivityFeed
           playerId={playerId}
           onClose={closeActivityFeed}
+        />
+      )}
+
+      {/* Platform Expansion Prototype */}
+      {showMobilePrototype && (
+        <MobilePrototype
+          onClose={closeMobilePrototype}
         />
       )}
     </div>

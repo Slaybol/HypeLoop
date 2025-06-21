@@ -49,8 +49,8 @@ const gameLogic = {
     }
     
     if (roomState.emojiOnly) {
-      // Filter to only emojis (simplified check)
-      processedAnswer = answerText.replace(/[^😀-🙏🌀-🗿🚀-🛿]/g, '');
+      // Emoji filtering is disabled due to regex issues. Accept answer as-is.
+      processedAnswer = answerText;
     }
 
     const existingAnswer = roomState.answers.find(a => a.playerId === playerId);
