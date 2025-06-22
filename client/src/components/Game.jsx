@@ -20,6 +20,8 @@ import Tournament from "./Tournament";
 import Friends from "./Friends";
 import Groups from "./Groups";
 import ActivityFeed from "./ActivityFeed";
+import Auth from "./Auth";
+import UserProfile from "./UserProfile";
 import powerUpService from "../services/PowerUpService";
 import socialService from "../services/SocialService";
 import "../App.css"; // 👈 adjust if needed
@@ -33,6 +35,13 @@ import animationManager, {
 } from './AnimationManager';
 
 export default function Game() {
+  // User authentication state
+  const [user, setUser] = useState(null);
+  const [sessionId, setSessionId] = useState(localStorage.getItem('sessionId'));
+  const [showAuth, setShowAuth] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   const [gameState, setGameState] = useState("join"); // join, waiting, answering, voting, results
   const [name, setName] = useState("");
   const [room, setRoom] = useState("");
@@ -98,6 +107,124 @@ export default function Game() {
   const timerRef = useRef(null);
   const { elementRef: answerInputRef, animate: animateAnswerInput } = useAnimations();
   const { elementRef: voteContainerRef, animate: animateVoteContainer } = useAnimations();
+
+  // Check authentication on mount
+  useEffect(() => {
+    checkAuthentication();
+  }, []);
+
+  const checkAuthentication = async () => {
+    if (sessionId) {
+      try {
+        const response = await fetch('/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${sessionId}`
+          }
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          setUser(data.user);
+          setIsAuthenticated(true);
+          // Set name from user profile if available
+          if (data.user.profile?.displayName) {
+            setName(data.user.profile.displayName);
+          }
+        } else {
+          // Invalid session, clear it
+          localStorage.removeItem('sessionId');
+          setSessionId(null);
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        localStorage.removeItem('sessionId');
+        setSessionId(null);
+        setIsAuthenticated(false);
+      }
+    }
+  };
+
+  const handleLogin = (data) => {
+    setUser(data.user);
+    setSessionId(data.sessionId);
+    localStorage.setItem('sessionId', data.sessionId);
+    setIsAuthenticated(true);
+    setShowAuth(false);
+    
+    // Set name from user profile
+    if (data.user.profile?.displayName) {
+      setName(data.user.profile.displayName);
+    }
+    
+    // Audio feedback
+    audioManager.playSound('notification');
+  };
+
+  const handleRegister = (data) => {
+    setUser(data.user);
+    setSessionId(data.sessionId);
+    localStorage.setItem('sessionId', data.sessionId);
+    setIsAuthenticated(true);
+    setShowAuth(false);
+    
+    // Set name from user profile
+    if (data.user.profile?.displayName) {
+      setName(data.user.profile.displayName);
+    }
+    
+    // Audio feedback
+    audioManager.playSound('notification');
+  };
+
+  const handleLogout = async () => {
+    try {
+      if (sessionId) {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ sessionId })
+        });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    
+    setUser(null);
+    setSessionId(null);
+    localStorage.removeItem('sessionId');
+    setIsAuthenticated(false);
+    setShowProfile(false);
+    
+    // Audio feedback
+    audioManager.playSound('notification');
+  };
+
+  const handleProfileUpdate = (updatedUser) => {
+    setUser(updatedUser);
+    if (updatedUser.profile?.displayName) {
+      setName(updatedUser.profile.displayName);
+    }
+  };
+
+  const updateUserStats = async (gameStats) => {
+    if (!sessionId) return;
+    
+    try {
+      await fetch('/api/stats/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionId}`
+        },
+        body: JSON.stringify(gameStats)
+      });
+    } catch (error) {
+      console.error('Failed to update stats:', error);
+    }
+  };
 
   useEffect(() => {
     // Initialize mobile optimization
@@ -258,6 +385,20 @@ export default function Game() {
           // Audio feedback for achievements
           audioManager.playSound('ding');
         }
+      }
+      
+      // Update user account stats if authenticated
+      if (isAuthenticated && user) {
+        const gameStats = {
+          gamesPlayed: 1,
+          gamesWon: roundWinner && roundWinner.name === name ? 1 : 0,
+          points: playerScoresThisRound?.[name] || 0,
+          playTime: 60, // Approximate round time
+          chaosModes: chaosMode ? 1 : 0,
+          powerUps: 0 // Will be updated separately
+        };
+        
+        updateUserStats(gameStats);
       }
       
       // End round for power-up system
@@ -728,6 +869,56 @@ export default function Game() {
           HypeLoop
         </h1>
         
+        {/* User Authentication Section */}
+        {isAuthenticated ? (
+          <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <img 
+                  src={user?.profile?.avatar} 
+                  alt="Avatar" 
+                  className="w-10 h-10 rounded-full border-2 border-green-300"
+                />
+                <div>
+                  <div className="font-semibold text-green-700">{user?.profile?.displayName || user?.username}</div>
+                  <div className="text-sm text-gray-600">Level {user?.profile?.level || 1}</div>
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-yellow-600">
+                🪙 {user?.profile?.coins || 0}
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <AnimatedButton 
+                onClick={() => setShowProfile(true)}
+                className="flex-1 text-sm"
+              >
+                Profile
+              </AnimatedButton>
+              <AnimatedButton 
+                onClick={handleLogout}
+                className="flex-1 text-sm bg-red-500 hover:bg-red-600"
+              >
+                Logout
+              </AnimatedButton>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+            <div className="text-center mb-3">
+              <div className="text-lg font-semibold text-blue-700">Welcome to HypeLoop!</div>
+              <div className="text-sm text-gray-600">Sign in to save your progress</div>
+            </div>
+            <AnimatedButton 
+              onClick={() => setShowAuth(true)}
+              className="w-full"
+            >
+              Sign In / Register
+            </AnimatedButton>
+          </div>
+        )}
+        
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -737,7 +928,7 @@ export default function Game() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name"
+              placeholder={isAuthenticated ? user?.profile?.displayName || user?.username : "Enter your name"}
               className="input-field w-full"
               maxLength={20}
             />
@@ -1500,6 +1691,24 @@ export default function Game() {
       {showMobilePrototype && (
         <MobilePrototype
           onClose={closeMobilePrototype}
+        />
+      )}
+
+      {/* User Authentication */}
+      {showAuth && (
+        <Auth
+          onLogin={handleLogin}
+          onRegister={handleRegister}
+          onClose={() => setShowAuth(false)}
+        />
+      )}
+
+      {/* User Profile */}
+      {showProfile && user && (
+        <UserProfile
+          user={user}
+          onClose={() => setShowProfile(false)}
+          onUpdate={handleProfileUpdate}
         />
       )}
     </div>

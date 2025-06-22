@@ -14,6 +14,7 @@ const { initTwitchVoting } = require("./twitch");
 const { getLeaderboard } = require("./leaderboard");
 const roomManager = require("./roomManager");
 const gameLogic = require("./gameLogic");
+const userService = require("./userService");
 
 const app = express();
 const server = http.createServer(app);
@@ -215,9 +216,199 @@ server.on("error", (error) => {
   console.error("Server error:", error);
 });
 
+// User authentication endpoints
+app.post("/api/auth/register", (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const user = userService.createUser({ username, email, password });
+    res.json({ success: true, user: userService.sanitizeUser(user) });
+  } catch (error) {
+    console.error("Registration error:", error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/api/auth/login", (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: "Missing username or password" });
+    }
+
+    const result = userService.authenticateUser(username, password);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(401).json({ error: error.message });
+  }
+});
+
+app.post("/api/auth/logout", (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    if (sessionId) {
+      userService.logout(sessionId);
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({ error: "Logout failed" });
+  }
+});
+
+app.get("/api/auth/me", (req, res) => {
+  try {
+    const sessionId = req.headers.authorization?.replace('Bearer ', '');
+    if (!sessionId) {
+      return res.status(401).json({ error: "No session provided" });
+    }
+
+    const user = userService.getUserBySession(sessionId);
+    if (!user) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error("Auth check error:", error);
+    res.status(500).json({ error: "Authentication check failed" });
+  }
+});
+
+// User profile endpoints
+app.get("/api/users/profile", (req, res) => {
+  try {
+    const sessionId = req.headers.authorization?.replace('Bearer ', '');
+    if (!sessionId) {
+      return res.status(401).json({ error: "No session provided" });
+    }
+
+    const user = userService.getUserBySession(sessionId);
+    if (!user) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+
+    res.json({ success: true, profile: user.profile });
+  } catch (error) {
+    console.error("Profile fetch error:", error);
+    res.status(500).json({ error: "Failed to fetch profile" });
+  }
+});
+
+app.put("/api/users/profile", (req, res) => {
+  try {
+    const sessionId = req.headers.authorization?.replace('Bearer ', '');
+    if (!sessionId) {
+      return res.status(401).json({ error: "No session provided" });
+    }
+
+    const session = userService.validateSession(sessionId);
+    if (!session) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+
+    const updatedUser = userService.updateUserProfile(session.userId, req.body);
+    res.json({ success: true, user: updatedUser });
+  } catch (error) {
+    console.error("Profile update error:", error);
+    res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+// Friends endpoints
+app.post("/api/friends/request", (req, res) => {
+  try {
+    const sessionId = req.headers.authorization?.replace('Bearer ', '');
+    if (!sessionId) {
+      return res.status(401).json({ error: "No session provided" });
+    }
+
+    const session = userService.validateSession(sessionId);
+    if (!session) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+
+    const { username } = req.body;
+    userService.sendFriendRequest(session.userId, username);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Friend request error:", error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post("/api/friends/accept", (req, res) => {
+  try {
+    const sessionId = req.headers.authorization?.replace('Bearer ', '');
+    if (!sessionId) {
+      return res.status(401).json({ error: "No session provided" });
+    }
+
+    const session = userService.validateSession(sessionId);
+    if (!session) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+
+    const { friendId } = req.body;
+    userService.acceptFriendRequest(session.userId, friendId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Friend accept error:", error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/api/friends", (req, res) => {
+  try {
+    const sessionId = req.headers.authorization?.replace('Bearer ', '');
+    if (!sessionId) {
+      return res.status(401).json({ error: "No session provided" });
+    }
+
+    const session = userService.validateSession(sessionId);
+    if (!session) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+
+    const friends = userService.getFriendsList(session.userId);
+    res.json({ success: true, friends });
+  } catch (error) {
+    console.error("Friends fetch error:", error);
+    res.status(500).json({ error: "Failed to fetch friends" });
+  }
+});
+
+// Stats endpoints
+app.post("/api/stats/update", (req, res) => {
+  try {
+    const sessionId = req.headers.authorization?.replace('Bearer ', '');
+    if (!sessionId) {
+      return res.status(401).json({ error: "No session provided" });
+    }
+
+    const session = userService.validateSession(sessionId);
+    if (!session) {
+      return res.status(401).json({ error: "Invalid session" });
+    }
+
+    userService.updateUserStats(session.userId, req.body);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Stats update error:", error);
+    res.status(500).json({ error: "Failed to update stats" });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running at http://0.0.0.0:${PORT}`);
+  console.log(`🌐 Access from other devices: http://YOUR_IP_ADDRESS:${PORT}`);
 });
 
 // ✅ Graceful shutdown
