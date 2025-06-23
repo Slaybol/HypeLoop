@@ -1033,7 +1033,7 @@ export default function Game() {
           <AnimatedButton 
             onClick={() => {
               // Emit a request to become host
-              socket.emit("request-host");
+              socket.emit("request-host", { room });
             }}
             className="w-full mb-2 bg-orange-500 hover:bg-orange-600"
           >

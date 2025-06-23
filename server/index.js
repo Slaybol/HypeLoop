@@ -196,6 +196,34 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("request-host", ({ room }) => {
+    console.log(`Host request for room: ${room} from player: ${socket.id}`);
+    
+    try {
+      const roomState = roomManager.getRoom(room);
+      if (roomState && Object.keys(roomState.players).length > 0) {
+        // Remove current host status from all players
+        Object.values(roomState.players).forEach(player => {
+          player.isHost = false;
+        });
+        
+        // Set new host
+        roomState.hostId = socket.id;
+        roomState.players[socket.id].isHost = true;
+        
+        console.log(`New host assigned: ${roomState.players[socket.id].name} (${socket.id})`);
+        
+        // Notify all players in the room
+        io.to(room).emit("room-updated", roomState);
+      } else {
+        socket.emit("host-request-error", { message: "Room not found or no players" });
+      }
+    } catch (error) {
+      console.error("Error requesting host:", error);
+      socket.emit("host-request-error", { message: "Failed to become host" });
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);
     try {
