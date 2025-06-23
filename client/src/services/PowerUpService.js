@@ -143,7 +143,7 @@ class PowerUpService {
         description: 'Submit your first answer',
         icon: '🎯',
         points: 10,
-        condition: (player) => player.stats.answersSubmitted >= 1
+        condition: (stats) => stats.answersSubmitted >= 1
       },
       
       answerMaster: {
@@ -152,7 +152,7 @@ class PowerUpService {
         description: 'Submit 50 answers',
         icon: '📝',
         points: 50,
-        condition: (player) => player.stats.answersSubmitted >= 50
+        condition: (stats) => stats.answersSubmitted >= 50
       },
       
       // Voting Achievements
@@ -162,7 +162,7 @@ class PowerUpService {
         description: 'Cast your first vote',
         icon: '🗳️',
         points: 10,
-        condition: (player) => player.stats.votesCast >= 1
+        condition: (stats) => stats.votesCast >= 1
       },
       
       voteCollector: {
@@ -171,7 +171,7 @@ class PowerUpService {
         description: 'Receive 100 total votes',
         icon: '🏆',
         points: 100,
-        condition: (player) => player.stats.votesReceived >= 100
+        condition: (stats) => stats.votesReceived >= 100
       },
       
       // Winning Achievements
@@ -181,7 +181,7 @@ class PowerUpService {
         description: 'Win your first round',
         icon: '🥇',
         points: 25,
-        condition: (player) => player.stats.roundsWon >= 1
+        condition: (stats) => stats.roundsWon >= 1
       },
       
       winStreak: {
@@ -190,7 +190,7 @@ class PowerUpService {
         description: 'Win 3 rounds in a row',
         icon: '🔥',
         points: 75,
-        condition: (player) => player.stats.currentWinStreak >= 3
+        condition: (stats) => stats.currentWinStreak >= 3
       },
       
       // Chaos Achievements
@@ -198,28 +198,9 @@ class PowerUpService {
         id: 'chaosSurvivor',
         name: 'Chaos Survivor',
         description: 'Win a round during chaos mode',
-        icon: '⚡',
+        icon: '🌀',
         points: 50,
-        condition: (player) => player.stats.chaosWins >= 1
-      },
-      
-      chaosMaster: {
-        id: 'chaosMaster',
-        name: 'Chaos Master',
-        description: 'Win 5 rounds during chaos mode',
-        icon: '👑',
-        points: 200,
-        condition: (player) => player.stats.chaosWins >= 5
-      },
-      
-      // Social Achievements
-      teamPlayer: {
-        id: 'teamPlayer',
-        name: 'Team Player',
-        description: 'Play with 10 different players',
-        icon: '👥',
-        points: 30,
-        condition: (player) => player.stats.uniquePlayersMet >= 10
+        condition: (stats) => stats.chaosWins >= 1
       },
       
       // Power-up Achievements
@@ -229,7 +210,7 @@ class PowerUpService {
         description: 'Use 10 power-ups',
         icon: '⚡',
         points: 40,
-        condition: (player) => player.stats.powerUpsUsed >= 10
+        condition: (stats) => stats.powerUpsUsed >= 10
       },
       
       // Special Achievements
@@ -239,7 +220,7 @@ class PowerUpService {
         description: 'Win after being in last place',
         icon: '🔄',
         points: 100,
-        condition: (player) => player.stats.comebackWins >= 1
+        condition: (stats) => stats.comebackWins >= 1
       },
       
       perfectRound: {
@@ -248,7 +229,7 @@ class PowerUpService {
         description: 'Get all votes in a round',
         icon: '⭐',
         points: 150,
-        condition: (player) => player.stats.perfectRounds >= 1
+        condition: (stats) => stats.perfectRounds >= 1
       }
     };
 
