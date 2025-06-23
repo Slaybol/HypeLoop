@@ -94,18 +94,27 @@ io.on("connection", (socket) => {
   });
 
   socket.on("start-game", async ({ room }) => {
-    console.log(`Start game request for room: ${room}`);
+    console.log(`🎮 Start game request for room: ${room} from player: ${socket.id}`);
     
     try {
       const roomState = roomManager.getRoom(room);
+      console.log(`📊 Room state:`, {
+        exists: !!roomState,
+        playerCount: roomState ? Object.keys(roomState.players).length : 0,
+        currentPhase: roomState?.currentPhase,
+        hostId: roomState?.hostId
+      });
+      
       if (roomState && Object.keys(roomState.players).length >= 1) {
+        console.log(`✅ Starting game for room: ${room}`);
         await gameLogic.startGame(io, room, roomState);
         // ✅ Make sure gameLogic.startGame emits 'game-started' event
       } else {
+        console.log(`❌ Cannot start game: Room not found or not enough players`);
         socket.emit("game-start-error", { message: "Cannot start game: Room not found or not enough players." });
       }
     } catch (error) {
-      console.error("Error starting game:", error);
+      console.error("❌ Error starting game:", error);
       socket.emit("game-start-error", { message: "Failed to start game" });
     }
   });

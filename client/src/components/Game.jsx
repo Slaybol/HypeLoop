@@ -260,6 +260,12 @@ export default function Game() {
       audioManager.playSound('error');
     });
 
+    socket.on("game-start-error", ({ message }) => {
+      console.error(`❌ Game start error: ${message}`);
+      alert(`Failed to start game: ${message}`);
+      audioManager.playSound('error');
+    });
+
     socket.on("room-updated", ({ players, hypeCoins, chaosMode }) => {
       setPlayers(Object.values(players || {}));
       if (hypeCoins) setHypeCoins(hypeCoins);
@@ -530,12 +536,15 @@ export default function Game() {
   };
 
   const startGame = () => {
+    console.log(`🎮 Start game clicked! Room: ${room}, Player: ${name}, Socket ID: ${socket.id}`);
+    
     // Animate start button
     if (gameContainerRef.current) {
       animationManager.bounce(gameContainerRef.current, 0.2);
     }
 
-    socket.emit("start-game");
+    socket.emit("start-game", { room });
+    console.log(`📤 Emitted start-game event with room: ${room}`);
   };
 
   const submitAnswer = () => {
