@@ -128,18 +128,37 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("submit-answer", ({ room, answer }) => {
-    console.log(`Answer submitted for room ${room}:`, answer);
+  socket.on("submit-answer", (data) => {
+    // Handle both { room, answer } and direct parameters
+    const room = data?.room || data;
+    const answer = data?.answer || data;
+    
+    console.log(`📝 Answer submitted for room ${room}:`, answer);
+    console.log(`📤 Received data:`, data);
+    
+    if (!room || !answer) {
+      console.log(`❌ Missing room or answer in submit-answer`);
+      socket.emit("submit-error", { message: "Missing room or answer" });
+      return;
+    }
     
     try {
       const roomState = roomManager.getRoom(room);
+      console.log(`📊 Room state for submit:`, {
+        exists: !!roomState,
+        currentPhase: roomState?.currentPhase,
+        playerCount: roomState ? Object.keys(roomState.players).length : 0
+      });
+      
       if (roomState && roomState.currentPhase === "answering") {
+        console.log(`✅ Processing answer submission for room: ${room}`);
         gameLogic.submitAnswer(io, socket.id, room, answer);
       } else {
+        console.log(`❌ Cannot submit answer: wrong phase or room not found`);
         socket.emit("submit-error", { message: "Cannot submit answer at this time" });
       }
     } catch (error) {
-      console.error("Error submitting answer:", error);
+      console.error("❌ Error submitting answer:", error);
       socket.emit("submit-error", { message: "Failed to submit answer" });
     }
   });
