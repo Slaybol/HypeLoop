@@ -266,6 +266,18 @@ export default function Game() {
       audioManager.playSound('error');
     });
 
+    socket.on("submit-error", ({ message }) => {
+      console.error(`❌ Submit error: ${message}`);
+      alert(`Failed to submit answer: ${message}`);
+      audioManager.playSound('error');
+    });
+
+    socket.on("vote-error", ({ message }) => {
+      console.error(`❌ Vote error: ${message}`);
+      alert(`Failed to submit vote: ${message}`);
+      audioManager.playSound('error');
+    });
+
     socket.on("room-updated", ({ players, hypeCoins, chaosMode }) => {
       setPlayers(Object.values(players || {}));
       if (hypeCoins) setHypeCoins(hypeCoins);
@@ -550,6 +562,8 @@ export default function Game() {
   const submitAnswer = () => {
     if (!answerText.trim()) return;
 
+    console.log(`📝 Submitting answer: "${answerText}" for room: ${room}`);
+
     // Animate submission
     if (answerInputRef.current) {
       animationManager.bounce(answerInputRef.current, 0.1);
@@ -562,27 +576,34 @@ export default function Game() {
       });
     }
 
-    socket.emit("submit-answer", { answer: answerText });
+    socket.emit("submit-answer", { room, answer: answerText });
+    console.log(`📤 Emitted submit-answer event with room: ${room}, answer: "${answerText}"`);
     setAnswerText("");
   };
 
   const submitVote = (votedPlayerId) => {
+    console.log(`🗳️ Submitting vote for player: ${votedPlayerId} in room: ${room}`);
+    
     // Animate vote
     const voteElement = document.getElementById(`vote-${votedPlayerId}`);
     if (voteElement) {
       animationManager.animateVoteCount(voteElement);
     }
 
-    socket.emit("submit-vote", { votedPlayerId });
+    socket.emit("submit-vote", { room, votedPlayerId });
+    console.log(`📤 Emitted submit-vote event with room: ${room}, votedPlayerId: ${votedPlayerId}`);
   };
 
   const nextRound = () => {
+    console.log(`🔄 Starting next round for room: ${room}`);
+    
     // Animate next round button
     if (gameContainerRef.current) {
       animationManager.pulseElement(gameContainerRef.current, 1000);
     }
 
-    socket.emit("next-round");
+    socket.emit("next-round", { room });
+    console.log(`📤 Emitted next-round event with room: ${room}`);
   };
 
   // Voice input functions
