@@ -4,8 +4,8 @@ const config = {
     backendUrl: "http://localhost:3001"
   },
   production: {
-    // Railway backend URL
-    backendUrl: "https://soothing-growth-production.up.railway.app"
+    // Use the same domain since Railway serves frontend and backend together
+    backendUrl: window.location.origin
   }
 };
 
