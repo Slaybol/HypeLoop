@@ -124,24 +124,41 @@ const gameLogic = {
 
   submitVote: (io, voterId, roomId, votedPlayerId) => {
     const roomState = roomManager.getRoom(roomId);
-    if (!roomState || roomState.currentPhase !== "voting") return;
+    console.log(`🗳️ submitVote called - Voter: ${voterId}, Voted for: ${votedPlayerId}, Room: ${roomId}`);
+    console.log(`📊 Room state:`, {
+      exists: !!roomState,
+      currentPhase: roomState?.currentPhase,
+      selfVoting: roomState?.selfVoting || false,
+      hasVoted: roomState?.votes?.[voterId] ? 'Yes' : 'No',
+      voterName: roomState?.players[voterId]?.name,
+      votedPlayerName: roomState?.players[votedPlayerId]?.name
+    });
+    
+    if (!roomState || roomState.currentPhase !== "voting") {
+      console.log(`❌ Cannot vote: Room not found or wrong phase`);
+      return;
+    }
 
     // Chaos mode voting rules
     if (roomState.selfVoting && voterId !== votedPlayerId) {
+      console.log(`❌ Chaos mode: Must vote for yourself`);
       io.to(voterId).emit("vote-error", { message: "🌀 CHAOS MODE: You must vote for yourself!" });
       return;
     }
     
     if (!roomState.selfVoting && voterId === votedPlayerId) {
+      console.log(`❌ Cannot vote for yourself`);
       io.to(voterId).emit("vote-error", { message: "You can't vote for yourself! 😅" });
       return;
     }
     
     if (roomState.votes[voterId]) {
+      console.log(`❌ Already voted`);
       io.to(voterId).emit("vote-error", { message: "You've already voted! 🗳️" });
       return;
     }
 
+    console.log(`✅ Vote accepted - Recording vote`);
     roomState.votes[voterId] = votedPlayerId;
     roomManager.updateRoomState(roomId, roomState);
     
@@ -158,8 +175,15 @@ const gameLogic = {
     // Check if all players who submitted answers have voted
     const playersWhoAnswered = roomState.answers.map(a => a.playerId);
     const uniqueVoters = new Set(Object.keys(roomState.votes));
+    
+    console.log(`📊 Vote check:`, {
+      playersWhoAnswered: playersWhoAnswered.length,
+      uniqueVoters: uniqueVoters.size,
+      allVoted: playersWhoAnswered.every(pId => uniqueVoters.has(pId))
+    });
 
     if (playersWhoAnswered.every(pId => uniqueVoters.has(pId))) {
+      console.log(`✅ All players voted - Transitioning to results`);
       // All eligible players have voted, show results
       setTimeout(() => {
         gameLogic.transitionToResults(io, roomId);

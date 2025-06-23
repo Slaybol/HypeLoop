@@ -174,18 +174,40 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("submit-vote", ({ room, votedPlayerId }) => {
-    console.log(`Vote submitted for room ${room}, voted for player:`, votedPlayerId);
+  socket.on("submit-vote", (data) => {
+    // Handle both { room, votedPlayerId } and direct parameters
+    const room = data?.room || data;
+    const votedPlayerId = data?.votedPlayerId || data;
+    
+    console.log(`🗳️ Vote submitted for room ${room}, voted for player:`, votedPlayerId);
+    console.log(`📤 Received vote data:`, data);
+    console.log(`👤 Voter ID: ${socket.id}, Voted for: ${votedPlayerId}`);
+    
+    if (!room || !votedPlayerId) {
+      console.log(`❌ Missing room or votedPlayerId in submit-vote`);
+      socket.emit("vote-error", { message: "Missing room or player to vote for" });
+      return;
+    }
     
     try {
       const roomState = roomManager.getRoom(room);
+      console.log(`📊 Room state for vote:`, {
+        exists: !!roomState,
+        currentPhase: roomState?.currentPhase,
+        playerCount: roomState ? Object.keys(roomState.players).length : 0,
+        hasVoted: roomState?.votes?.[socket.id] ? 'Yes' : 'No',
+        selfVoting: roomState?.selfVoting || false
+      });
+      
       if (roomState && roomState.currentPhase === "voting") {
+        console.log(`✅ Processing vote submission for room: ${room}`);
         gameLogic.submitVote(io, socket.id, room, votedPlayerId);
       } else {
+        console.log(`❌ Cannot vote: wrong phase or room not found`);
         socket.emit("vote-error", { message: "Cannot vote at this time" });
       }
     } catch (error) {
-      console.error("Error submitting vote:", error);
+      console.error("❌ Error submitting vote:", error);
       socket.emit("vote-error", { message: "Failed to submit vote" });
     }
   });
