@@ -1538,7 +1538,7 @@ export default function Game() {
   return (
     <div className="min-h-screen p-4">
       {/* Mobile Navigation */}
-      {mobileOptimizer.isMobile() && (
+      {mobileOptimizer.isMobile && (
         <MobileNav 
           gameState={gameState}
           round={round}
