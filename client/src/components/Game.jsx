@@ -1005,11 +1005,11 @@ export default function Game() {
         )}
         
         <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-3">Players ({players.length})</h3>
+          <h3 className="text-lg font-semibold mb-3 text-gray-800">Players ({players.length})</h3>
           <div className="space-y-2">
             {players.map((player) => (
               <div key={player.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="font-medium">{player.name}</span>
+                <span className="font-medium text-gray-800">{player.name}</span>
                 {player.isHost && (
                   <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                     Host
@@ -1019,6 +1019,27 @@ export default function Game() {
             ))}
           </div>
         </div>
+        
+        {/* Debug info - remove this later */}
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs text-gray-700">
+          <div>Debug: Current name: "{name}"</div>
+          <div>Debug: Players: {JSON.stringify(players.map(p => ({ name: p.name, isHost: p.isHost })))}</div>
+          <div>Debug: Host player: {players.find(p => p.isHost)?.name || 'None'}</div>
+          <div>Debug: Is current player host? {players.find(p => p.isHost)?.name === name ? 'Yes' : 'No'}</div>
+        </div>
+        
+        {/* Fallback: If no host, first player can become host */}
+        {!players.find(p => p.isHost) && players.length > 0 && players[0].name === name && (
+          <AnimatedButton 
+            onClick={() => {
+              // Emit a request to become host
+              socket.emit("request-host");
+            }}
+            className="w-full mb-2 bg-orange-500 hover:bg-orange-600"
+          >
+            Become Host
+          </AnimatedButton>
+        )}
         
         {players.find(p => p.isHost)?.name === name && (
           <AnimatedButton 
@@ -1030,9 +1051,16 @@ export default function Game() {
           </AnimatedButton>
         )}
         
-        {players.find(p => p.isHost)?.name !== name && (
-          <p className="text-center text-gray-500">
+        {players.find(p => p.isHost)?.name !== name && players.find(p => p.isHost) && (
+          <p className="text-center text-gray-600">
             Waiting for host to start the game...
+          </p>
+        )}
+        
+        {/* If no host at all */}
+        {!players.find(p => p.isHost) && (
+          <p className="text-center text-gray-600">
+            No host assigned. First player should become host.
           </p>
         )}
         
