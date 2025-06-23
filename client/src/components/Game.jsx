@@ -563,6 +563,8 @@ export default function Game() {
     if (!answerText.trim()) return;
 
     console.log(`📝 Submitting answer: "${answerText}" for room: ${room}`);
+    console.log(`🔌 Socket connected: ${socket.connected}`);
+    console.log(`🔌 Socket ID: ${socket.id}`);
 
     // Animate submission
     if (answerInputRef.current) {
@@ -576,7 +578,10 @@ export default function Game() {
       });
     }
 
-    socket.emit("submit-answer", { room, answer: answerText });
+    const eventData = { room, answer: answerText };
+    console.log(`📤 About to emit submit-answer with data:`, eventData);
+    
+    socket.emit("submit-answer", eventData);
     console.log(`📤 Emitted submit-answer event with room: ${room}, answer: "${answerText}"`);
     setAnswerText("");
   };
