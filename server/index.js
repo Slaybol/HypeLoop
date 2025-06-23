@@ -93,8 +93,17 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("start-game", async ({ room }) => {
+  socket.on("start-game", async (data) => {
+    // Handle both { room } and direct room parameter
+    const room = data?.room || data;
     console.log(`🎮 Start game request for room: ${room} from player: ${socket.id}`);
+    console.log(`📤 Received data:`, data);
+    
+    if (!room) {
+      console.log(`❌ No room provided in start-game request`);
+      socket.emit("game-start-error", { message: "No room provided" });
+      return;
+    }
     
     try {
       const roomState = roomManager.getRoom(room);
@@ -205,8 +214,17 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("request-host", ({ room }) => {
-    console.log(`Host request for room: ${room} from player: ${socket.id}`);
+  socket.on("request-host", (data) => {
+    // Handle both { room } and direct room parameter
+    const room = data?.room || data;
+    console.log(`👑 Host request for room: ${room} from player: ${socket.id}`);
+    console.log(`📤 Received data:`, data);
+    
+    if (!room) {
+      console.log(`❌ No room provided in request-host`);
+      socket.emit("host-request-error", { message: "No room provided" });
+      return;
+    }
     
     try {
       const roomState = roomManager.getRoom(room);
@@ -220,7 +238,7 @@ io.on("connection", (socket) => {
         roomState.hostId = socket.id;
         roomState.players[socket.id].isHost = true;
         
-        console.log(`New host assigned: ${roomState.players[socket.id].name} (${socket.id})`);
+        console.log(`✅ New host assigned: ${roomState.players[socket.id].name} (${socket.id})`);
         
         // Notify all players in the room
         io.to(room).emit("room-updated", roomState);
@@ -228,7 +246,7 @@ io.on("connection", (socket) => {
         socket.emit("host-request-error", { message: "Room not found or no players" });
       }
     } catch (error) {
-      console.error("Error requesting host:", error);
+      console.error("❌ Error requesting host:", error);
       socket.emit("host-request-error", { message: "Failed to become host" });
     }
   });
