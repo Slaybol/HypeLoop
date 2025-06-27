@@ -578,6 +578,14 @@ export default function Game() {
       });
     }
 
+    // Play answer submit sound and analyze for voice quip
+    audioManager.playAnswerSubmit();
+    
+    // Add a small delay before the voice quip to let the sound play
+    setTimeout(() => {
+      audioManager.analyzeAnswerAndQuip(answerText);
+    }, 500);
+
     const eventData = { room, answer: answerText };
     console.log(`📤 About to emit submit-answer with data:`, eventData);
     
