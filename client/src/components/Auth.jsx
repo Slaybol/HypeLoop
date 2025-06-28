@@ -64,8 +64,8 @@ const Auth = ({ onClose, onLogin, onRegister }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in overflow-hidden">
-      <Card variant="elevated" className="w-full max-w-md max-h-[90vh] overflow-y-auto animate-scale-in">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in overflow-hidden" style={{ minHeight: '100vh' }}>
+      <Card variant="elevated" className="w-full max-w-md max-h-[90vh] overflow-y-auto animate-scale-in" style={{ maxHeight: '90vh' }}>
         <Card.Header>
           <div className="flex justify-between items-start">
             <div>
