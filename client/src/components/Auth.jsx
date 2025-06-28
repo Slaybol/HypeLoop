@@ -64,8 +64,8 @@ const Auth = ({ onClose, onLogin, onRegister }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-      <Card variant="elevated" className="w-full max-w-md animate-scale-in">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in overflow-hidden">
+      <Card variant="elevated" className="w-full max-w-md max-h-[90vh] overflow-y-auto animate-scale-in">
         <Card.Header>
           <div className="flex justify-between items-start">
             <div>
@@ -87,7 +87,7 @@ const Auth = ({ onClose, onLogin, onRegister }) => {
           </div>
         </Card.Header>
 
-        <Card.Body>
+        <Card.Body className="pb-6">
           {errors.general && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-700 text-sm">{errors.general}</p>
