@@ -13,9 +13,9 @@ const GameLayout = ({
   className = '' 
 }) => {
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 ${className}`}>
+    <div className={`bg-gradient-to-br from-primary-50 via-white to-secondary-50 ${className}`}>
       {/* Background Pattern */}
-      <div className="fixed inset-0 opacity-5">
+      <div className="fixed inset-0 opacity-5 pointer-events-none">
         <div className="absolute inset-0" style={{
           backgroundImage: `radial-gradient(circle at 25% 25%, #667eea 0%, transparent 50%),
                            radial-gradient(circle at 75% 75%, #764ba2 0%, transparent 50%)`,
@@ -59,7 +59,7 @@ const GameLayout = ({
 // Layout variants for different game states
 GameLayout.Join = ({ children, ...props }) => (
   <GameLayout {...props}>
-    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
+    <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 8rem)' }}>
       <div className="w-full max-w-md">
         {children}
       </div>
