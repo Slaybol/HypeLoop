@@ -24,6 +24,15 @@ import Auth from "./Auth";
 import UserProfile from "./UserProfile";
 import powerUpService from "../services/PowerUpService";
 import socialService from "../services/SocialService";
+
+// Import new UI components
+import GameLayout from "./ui/GameLayout";
+import JoinScreen from "./ui/JoinScreen";
+import Button from "./ui/Button";
+import Card from "./ui/Card";
+import Input from "./ui/Input";
+import Badge from "./ui/Badge";
+
 import "../App.css"; // 👈 adjust if needed
 import animationManager, { 
   AnimatedButton, 
@@ -207,22 +216,23 @@ export default function Game() {
     if (updatedUser.profile?.displayName) {
       setName(updatedUser.profile.displayName);
     }
+    audioManager.playSound('notification');
   };
 
   const updateUserStats = async (gameStats) => {
-    if (!sessionId) return;
-    
-    try {
-      await fetch('/api/stats/update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionId}`
-        },
-        body: JSON.stringify(gameStats)
-      });
-    } catch (error) {
-      console.error('Failed to update stats:', error);
+    if (sessionId) {
+      try {
+        await fetch('/api/stats/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionId}`
+          },
+          body: JSON.stringify(gameStats)
+        });
+      } catch (error) {
+        console.error('Failed to update stats:', error);
+      }
     }
   };
 
@@ -533,18 +543,25 @@ export default function Game() {
     }
   }, [chaosMode, chaosAnnouncement]);
 
-  const joinRoom = () => {
-    if (!name.trim() || !room.trim()) {
+  const joinRoom = (formData) => {
+    const { name: playerName, room: roomCode, theme: gameTheme } = formData;
+    
+    if (!playerName.trim() || !roomCode.trim()) {
       alert("Please enter both name and room code");
       return;
     }
+
+    // Update state with form data
+    setName(playerName);
+    setRoom(roomCode);
+    setTheme(gameTheme);
 
     // Animate join button
     if (gameContainerRef.current) {
       animationManager.pulseElement(gameContainerRef.current, 1000);
     }
 
-    socket.emit("join-room", { name, room });
+    socket.emit("join-room", { name: playerName, room: roomCode, theme: gameTheme });
   };
 
   const startGame = () => {
@@ -905,709 +922,16 @@ export default function Game() {
     audioManager.playButtonClick();
   };
 
-  const renderJoinScreen = () => (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <AnimatedCard className="w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-8 text-purple-600">
-          HypeLoop
-        </h1>
-        
-        {/* User Authentication Section */}
-        {isAuthenticated ? (
-          <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <img 
-                  src={user?.profile?.avatar} 
-                  alt="Avatar" 
-                  className="w-10 h-10 rounded-full border-2 border-green-300"
-                />
-                <div>
-                  <div className="font-semibold text-green-700">{user?.profile?.displayName || user?.username}</div>
-                  <div className="text-sm text-gray-600">Level {user?.profile?.level || 1}</div>
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-yellow-600">
-                🪙 {user?.profile?.coins || 0}
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <AnimatedButton 
-                onClick={() => setShowProfile(true)}
-                className="flex-1 text-sm"
-              >
-                Profile
-              </AnimatedButton>
-              <AnimatedButton 
-                onClick={handleLogout}
-                className="flex-1 text-sm bg-red-500 hover:bg-red-600"
-              >
-                Logout
-              </AnimatedButton>
-            </div>
-          </div>
-        ) : (
-          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
-            <div className="text-center mb-3">
-              <div className="text-lg font-semibold text-blue-700">Welcome to HypeLoop!</div>
-              <div className="text-sm text-gray-600">Sign in to save your progress</div>
-            </div>
-            <AnimatedButton 
-              onClick={() => setShowAuth(true)}
-              className="w-full"
-            >
-              Sign In / Register
-            </AnimatedButton>
-          </div>
-        )}
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Your Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={isAuthenticated ? user?.profile?.displayName || user?.username : "Enter your name"}
-              className="input-field w-full"
-              maxLength={20}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Room Code
-            </label>
-            <input
-              type="text"
-              value={room}
-              onChange={(e) => setRoom(e.target.value.toUpperCase())}
-              placeholder="Enter room code"
-              className="input-field w-full"
-              maxLength={6}
-            />
-          </div>
-          
-          <AnimatedButton 
-            onClick={joinRoom}
-            className="w-full"
-            disabled={!name.trim() || !room.trim()}
-          >
-            Join Room
-          </AnimatedButton>
-        </div>
-      </AnimatedCard>
-    </div>
-  );
-
-  const renderWaitingScreen = () => (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <AnimatedCard className="w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center mb-6">Waiting Room</h2>
-        <p className="text-center text-gray-600 mb-6">Room: {room}</p>
-        
-        {/* Player Stats and Power-ups */}
-        {playerId && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold text-purple-700">Your Stats</h3>
-              <div className="text-2xl font-bold text-yellow-600">
-                🪙 {getPlayerStats()?.coins || 0}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-              <div className="text-center">
-                <div className="font-bold text-blue-600">{getPlayerStats()?.roundsWon || 0}</div>
-                <div className="text-gray-600">Wins</div>
-              </div>
-              <div className="text-center">
-                <div className="font-bold text-green-600">{getPlayerStats()?.achievements?.size || 0}</div>
-                <div className="text-gray-600">Achievements</div>
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <button
-                onClick={openPowerUpShop}
-                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-2 px-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm"
-              >
-                ⚡ Power-ups
-              </button>
-              <button
-                onClick={openAchievements}
-                className="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white py-2 px-3 rounded-lg font-semibold hover:from-yellow-600 hover:to-yellow-700 transition-all duration-200 text-sm"
-              >
-                🏆 Achievements
-              </button>
-            </div>
-          </div>
-        )}
-        
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-3 text-gray-800">Players ({players.length})</h3>
-          <div className="space-y-2">
-            {players.map((player) => (
-              <div key={player.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="font-medium text-gray-800">{player.name}</span>
-                {player.isHost && (
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                    Host
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* Debug info - remove this later */}
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs text-gray-700">
-          <div>Debug: Current name: "{name}"</div>
-          <div>Debug: Players: {JSON.stringify(players.map(p => ({ name: p.name, isHost: p.isHost })))}</div>
-          <div>Debug: Host player: {players.find(p => p.isHost)?.name || 'None'}</div>
-          <div>Debug: Is current player host? {players.find(p => p.isHost)?.name === name ? 'Yes' : 'No'}</div>
-        </div>
-        
-        {/* Fallback: If no host, first player can become host */}
-        {!players.find(p => p.isHost) && players.length > 0 && players[0].name === name && (
-          <AnimatedButton 
-            onClick={() => {
-              // Emit a request to become host
-              socket.emit("request-host", { room });
-            }}
-            className="w-full mb-2 bg-orange-500 hover:bg-orange-600"
-          >
-            Become Host
-          </AnimatedButton>
-        )}
-        
-        {players.find(p => p.isHost)?.name === name && (
-          <AnimatedButton 
-            onClick={startGame}
-            className="w-full"
-            disabled={players.length < 2}
-          >
-            Start Game
-          </AnimatedButton>
-        )}
-        
-        {players.find(p => p.isHost)?.name !== name && players.find(p => p.isHost) && (
-          <p className="text-center text-gray-600">
-            Waiting for host to start the game...
-          </p>
-        )}
-        
-        {/* If no host at all */}
-        {!players.find(p => p.isHost) && (
-          <p className="text-center text-gray-600">
-            No host assigned. First player should become host.
-          </p>
-        )}
-        
-        {/* Leaderboard Button */}
-        <button
-          onClick={openLeaderboard}
-          className="w-full mt-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-purple-600 hover:to-purple-700 transition-all duration-200"
-        >
-          📊 View Leaderboard
-        </button>
-        
-        {/* Tournament Button */}
-        <button
-          onClick={openTournament}
-          className="w-full mt-2 bg-gradient-to-r from-orange-500 to-red-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition-all duration-200"
-        >
-          🏆 Join Tournaments
-        </button>
-
-        {/* Social Features Buttons */}
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <button
-            onClick={openFriends}
-            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-3 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-sm"
-          >
-            👥 Friends
-          </button>
-          <button
-            onClick={openGroups}
-            className="bg-gradient-to-r from-green-500 to-green-600 text-white py-2 px-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm"
-          >
-            👥 Groups
-          </button>
-          <button
-            onClick={openActivityFeed}
-            className="bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2 px-3 rounded-lg font-semibold hover:from-purple-600 hover:to-purple-700 transition-all duration-200 text-sm"
-          >
-            📱 Feed
-          </button>
-        </div>
-
-        {/* Streamer Tools Button */}
-        <button
-          onClick={openAdvancedStreamerTools}
-          className="w-full mt-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-700 transition-all duration-200"
-        >
-          🎮 Advanced Streamer Tools
-        </button>
-
-        {/* Platform Expansion Button */}
-        <button
-          onClick={openMobilePrototype}
-          className="w-full mt-2 bg-gradient-to-r from-orange-500 to-red-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition-all duration-200"
-        >
-          🚀 Platform Expansion
-        </button>
-      </AnimatedCard>
-    </div>
-  );
-
-  const renderAnswerScreen = () => (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-pink-900 to-red-900 p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Chaos Mode Announcement */}
-        {showChaosAlert && chaosAnnouncement && (
-          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
-            <div className="bg-gradient-to-r from-red-600 to-purple-600 text-white font-bold py-4 px-8 rounded-2xl border-2 border-yellow-400 animate-pulse shadow-2xl">
-              <div className="text-center">
-                <div className="text-2xl mb-2">🌀</div>
-                <div className="text-lg">{chaosAnnouncement}</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">Round {round}</h2>
-          <p className="text-purple-300">Enter your answer!</p>
-          
-          {/* Chaos Mode Indicator */}
-          {chaosMode && (
-            <div className="mt-4 bg-gradient-to-r from-red-600 to-purple-600 text-white font-bold py-2 px-6 rounded-lg inline-block">
-              🌀 {chaosMode.name}
-            </div>
-          )}
-          
-          {/* Power-up Status */}
-          {playerId && (
-            <div className="mt-4 flex items-center justify-center space-x-4">
-              <div className="bg-black/30 backdrop-blur-sm rounded-lg px-4 py-2 border border-purple-500/30">
-                <div className="text-yellow-400 font-bold text-lg">
-                  🪙 {getPlayerStats()?.coins || 0}
-                </div>
-                <div className="text-purple-300 text-xs">Coins</div>
-              </div>
-              
-              <button
-                onClick={openPowerUpShop}
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200"
-              >
-                ⚡ Power-ups
-              </button>
-              
-              {/* Active Power-ups */}
-              {activePowerUps.length > 0 && (
-                <div className="flex space-x-2">
-                  {activePowerUps.map((powerUp, index) => (
-                    <div
-                      key={index}
-                      className="bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs px-2 py-1 rounded-full animate-pulse"
-                      title={`${powerUp.name} - ${powerUp.roundsLeft} rounds left`}
-                    >
-                      {powerUp.icon} {powerUp.name}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Prompt */}
-        <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-8 mb-8 border border-purple-500/30">
-          <h3 className="text-2xl font-bold text-white text-center mb-4">
-            {currentPrompt?.text || "Loading prompt..."}
-          </h3>
-          
-          {/* Chaos Mode Instructions */}
-          {chaosMode && (
-            <div className="mt-4 p-4 bg-red-500/20 rounded-lg border border-red-500/50">
-              <p className="text-red-300 text-center font-semibold">
-                {chaosMode.description}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Answer Input */}
-        <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-8 mb-8 border border-purple-500/30">
-          <textarea
-            ref={answerInputRef}
-            value={answerText}
-            onChange={(e) => setAnswerText(e.target.value)}
-            placeholder={
-              chaosMode?.name === "Emoji Only" 
-                ? "Use only emojis! 😀🎉🚀" 
-                : chaosMode?.name === "Backwards Round"
-                ? "Type normally, it will be reversed!"
-                : chaosMode?.name === "Rhyme Time"
-                ? "Make sure your answer rhymes!"
-                : chaosMode?.name === "Impersonation"
-                ? `Answer as ${chaosMode.impersonationTarget || "a famous person"}!`
-                : "Type your hilarious answer here..."
-            }
-            className="w-full p-4 bg-white/10 border border-purple-500/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-400 resize-none"
-            rows={4}
-            maxLength={200}
-            disabled={chaosMode?.name === "Silent Round" && voiceEnabled}
-          />
-          
-          {/* Chaos Mode Answer Preview */}
-          {chaosMode?.name === "Backwards Round" && answerText && (
-            <div className="mt-2 p-2 bg-yellow-500/20 rounded border border-yellow-500/50">
-              <p className="text-yellow-300 text-sm">
-                <strong>Will be displayed as:</strong> {answerText.split('').reverse().join('')}
-              </p>
-            </div>
-          )}
-          
-          {/* Voice Input Controls */}
-          {voiceEnabled && chaosMode?.name !== "Silent Round" && (
-            <div className="mt-4 p-4 bg-white/5 rounded-lg border border-purple-500/30">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-white font-semibold">🎤 Voice Input</span>
-                <div className={`w-3 h-3 rounded-full ${isListening ? 'bg-red-500 animate-pulse' : 'bg-gray-500'}`}></div>
-              </div>
-              
-              <div className="flex gap-2">
-                {!isListening ? (
-                  <button
-                    onClick={startVoiceInput}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200"
-                  >
-                    🎤 Start Voice Input
-                  </button>
-                ) : (
-                  <button
-                    onClick={stopVoiceInput}
-                    className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200"
-                  >
-                    ⏹️ Stop Voice Input
-                  </button>
-                )}
-                
-                <button
-                  onClick={() => setAnswerText("")}
-                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-bold rounded-lg transition-all duration-200"
-                >
-                  🗑️ Clear
-                </button>
-              </div>
-              
-              {isListening && (
-                <p className="text-yellow-400 text-sm mt-2 text-center animate-pulse">
-                  🎤 Listening... Speak now!
-                </p>
-              )}
-            </div>
-          )}
-          
-          {/* Silent Round Notice */}
-          {chaosMode?.name === "Silent Round" && voiceEnabled && (
-            <div className="mt-4 p-4 bg-red-500/20 rounded-lg border border-red-500/50">
-              <p className="text-red-300 text-center font-semibold">
-                🚫 Voice input disabled for this round!
-              </p>
-            </div>
-          )}
-          
-          <div className="flex justify-between items-center mt-4">
-            <span className="text-purple-300 text-sm">
-              {answerText.length}/200 characters
-            </span>
-            <button
-              onClick={submitAnswer}
-              disabled={!answerText.trim()}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-lg transition-all duration-200"
-            >
-              Submit Answer
-            </button>
-          </div>
-        </div>
-
-        {/* Players Status */}
-        <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/30">
-          <h3 className="text-xl text-white mb-4">Players:</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {players.map((player) => (
-              <div key={player.id} className="bg-white/10 rounded-lg p-3 text-center">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full mx-auto mb-2 flex items-center justify-center text-white font-bold text-sm">
-                  {player.name.charAt(0).toUpperCase()}
-                </div>
-                <p className="text-white font-semibold text-sm">{player.name}</p>
-                <p className="text-purple-300 text-xs">💰 {hypeCoins[player.id] || 0} HypeCoins</p>
-                <div className="mt-2">
-                  {answers.find(a => a.playerId === player.id) ? (
-                    <span className="text-green-400 text-xs">✅ Answered</span>
-                  ) : (
-                    <span className="text-yellow-400 text-xs">⏳ Thinking...</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderVotingScreen = () => (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-pink-900 to-red-900 p-4">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-3xl font-bold text-center mb-8 text-white">🗳️ Vote for the Best Answer!</h2>
-        
-        <div className="grid gap-6">
-          {answers.map((answer, index) => {
-            const voteCount = voteCounts[answer.playerId] || 0;
-            const hasVoted = Object.keys(votes).length > 0;
-            const isVotedFor = Object.values(votes).includes(answer.playerId);
-            const player = players.find(p => p.id === answer.playerId);
-            
-            return (
-              <div key={index} className={`bg-black/50 backdrop-blur-sm rounded-2xl p-6 border transition-all duration-200 ${
-                isVotedFor ? 'border-green-500/50 bg-green-500/10' : 'border-purple-500/30'
-              }`}>
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full mr-3 flex items-center justify-center text-white font-bold">
-                      {player?.name?.charAt(0).toUpperCase() || "?"}
-                    </div>
-                    <div>
-                      <p className="text-white font-semibold">{player?.name || "Unknown"}</p>
-                      <p className="text-purple-300 text-sm">💰 {hypeCoins[answer.playerId] || 0} HypeCoins</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-yellow-400">{voteCount}</div>
-                    <div className="text-purple-300 text-sm">votes</div>
-                  </div>
-                </div>
-                
-                <p className="text-xl text-white mb-4 italic">"{answer.answer}"</p>
-                
-                <button
-                  onClick={() => submitVote(answer.playerId)}
-                  disabled={hasVoted}
-                  className={`w-full font-bold py-3 px-6 rounded-lg transition-all duration-200 transform ${
-                    hasVoted
-                      ? isVotedFor
-                        ? "bg-gradient-to-r from-green-600 to-blue-600 text-white cursor-not-allowed"
-                        : "bg-gray-600 text-gray-400 cursor-not-allowed"
-                      : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white hover:scale-105"
-                  }`}
-                >
-                  {hasVoted 
-                    ? isVotedFor 
-                      ? "✅ Voted for this answer!" 
-                      : "Vote submitted"
-                    : "🗳️ Vote for this answer"
-                  }
-                </button>
-              </div>
-            );
-          })}
-        </div>
-        
-        {Object.keys(votes).length > 0 && (
-          <div className="text-center mt-8">
-            <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/30">
-              <p className="text-purple-300 text-lg mb-2">Waiting for other players to vote...</p>
-              <div className="flex justify-center space-x-2">
-                {players.map((player) => (
-                  <div key={player.id} className="flex items-center">
-                    <div className="w-6 h-6 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full mr-2 flex items-center justify-center text-white font-bold text-xs">
-                      {player.name.charAt(0).toUpperCase()}
-                    </div>
-                    <span className={`text-sm ${votes[player.id] ? 'text-green-400' : 'text-yellow-400'}`}>
-                      {votes[player.id] ? '✅' : '⏳'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderResultsScreen = () => (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-pink-900 to-red-900 p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Achievement Notifications */}
-        {newAchievements.length > 0 && (
-          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
-            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold py-4 px-8 rounded-2xl border-2 border-yellow-600 shadow-2xl animate-bounce">
-              <div className="text-center">
-                <div className="text-2xl mb-2">🏆</div>
-                <div className="text-lg font-bold">Achievement Unlocked!</div>
-                {newAchievements.map((achievement, index) => (
-                  <div key={index} className="text-sm">
-                    {achievement.icon} {achievement.name} (+{achievement.points} coins)
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Winner */}
-        {roundWinner && (
-          <div className="text-center mb-8">
-            <h2 className="text-4xl font-bold text-yellow-400 mb-4">🏆 Round Winner! 🏆</h2>
-            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-6 inline-block transform animate-pulse">
-              <p className="text-2xl font-bold text-black">{roundWinner.name}</p>
-              <p className="text-black text-sm">+{Object.values(votes).filter(v => v === roundWinner.id).length * 10} HypeCoins!</p>
-            </div>
-          </div>
-        )}
-
-        {/* All Answers with Vote Counts */}
-        <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-8 mb-8 border border-purple-500/30">
-          <h3 className="text-2xl font-bold text-white mb-6">📝 All Answers:</h3>
-          <div className="space-y-4">
-            {answers.map((answer, index) => {
-              const voteCount = Object.values(votes).filter(v => v === answer.playerId).length;
-              const player = players.find(p => p.id === answer.playerId);
-              const isWinner = roundWinner?.id === answer.playerId;
-              
-              return (
-                <div key={index} className={`bg-white/10 rounded-lg p-4 transition-all duration-200 ${
-                  isWinner ? 'border-2 border-yellow-400 bg-yellow-400/10' : ''
-                }`}>
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full mr-3 flex items-center justify-center text-white font-bold text-sm">
-                        {player?.name?.charAt(0).toUpperCase() || "?"}
-                      </div>
-                      <span className="text-white font-semibold">{player?.name || "Unknown"}</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-yellow-400">{voteCount}</div>
-                      <div className="text-purple-300 text-xs">votes</div>
-                    </div>
-                  </div>
-                  <p className="text-white text-lg italic">"{answer.answer}"</p>
-                  {isWinner && (
-                    <div className="mt-2 text-yellow-400 text-sm font-semibold">
-                      🏆 Winner! +{voteCount * 10} HypeCoins earned
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Leaderboard with HypeCoins */}
-        <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-8 mb-8 border border-purple-500/30">
-          <h3 className="text-2xl font-bold text-white mb-6">🏅 Leaderboard:</h3>
-          <div className="space-y-2">
-            {leaderboard.map((player, index) => (
-              <div key={player.id} className="flex justify-between items-center bg-white/10 rounded-lg p-4">
-                <div className="flex items-center">
-                  <span className="text-2xl mr-3">
-                    {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "🏅"}
-                  </span>
-                  <div>
-                    <span className="text-white font-semibold">{player.name}</span>
-                    <div className="text-purple-300 text-sm">💰 {hypeCoins[player.id] || 0} HypeCoins</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-yellow-400 font-bold text-xl">{player.score} pts</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Power-up and Achievement Buttons */}
-        {playerId && (
-          <div className="flex justify-center space-x-4 mb-8">
-            <button
-              onClick={openPowerUpShop}
-              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
-            >
-              ⚡ Power-up Shop
-            </button>
-            <button
-              onClick={openAchievements}
-              className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
-            >
-              🏆 Achievements
-            </button>
-            <button
-              onClick={openLeaderboard}
-              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
-            >
-              📊 Leaderboard
-            </button>
-          </div>
-        )}
-
-        {/* Social Features Buttons */}
-        {playerId && (
-          <div className="flex justify-center space-x-4 mb-8">
-            <button
-              onClick={openFriends}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
-            >
-              👥 Friends
-            </button>
-            <button
-              onClick={openGroups}
-              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
-            >
-              👥 Groups
-            </button>
-            <button
-              onClick={openActivityFeed}
-              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
-            >
-              📱 Activity Feed
-            </button>
-          </div>
-        )}
-
-        {/* Streamer Tools Button */}
-        <div className="text-center mb-8">
-          <button
-            onClick={openAdvancedStreamerTools}
-            className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
-          >
-            🎮 Advanced Streamer Tools
-          </button>
-        </div>
-
-        {/* Next Round Button */}
-        <div className="text-center">
-          <button
-            onClick={nextRound}
-            className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-bold py-4 px-8 rounded-lg text-xl transition-all duration-200 transform hover:scale-105"
-          >
-            🎮 Next Round
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="min-h-screen p-4">
+    <GameLayout
+      user={user}
+      gameState={gameState}
+      room={room}
+      playerCount={players.length}
+      onAuth={() => setShowAuth(true)}
+      onProfile={() => setShowProfile(true)}
+      onLeave={leaveGame}
+    >
       {/* Mobile Navigation */}
       {mobileOptimizer.isMobile && (
         <MobileNav 
@@ -1631,22 +955,58 @@ export default function Game() {
       {/* Main Game Container */}
       <div 
         ref={gameContainerRef}
-        className={`game-container max-w-4xl mx-auto ${chaosTriggered ? 'chaos-trigger' : ''}`}
+        className={`game-container ${chaosTriggered ? 'chaos-trigger' : ''}`}
       >
         {/* Chaos Mode Alert */}
         {showChaosAlert && chaosAnnouncement && (
-          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg chaos-glow">
-            <h3 className="font-bold text-lg mb-2">🔥 CHAOS MODE ACTIVATED! 🔥</h3>
-            <p>{chaosAnnouncement}</p>
-          </div>
+          <Card variant="danger" className="mb-6 animate-pulse-glow">
+            <Card.Body>
+              <div className="flex items-center space-x-3">
+                <span className="text-2xl">🔥</span>
+                <div>
+                  <h3 className="font-bold text-lg">CHAOS MODE ACTIVATED!</h3>
+                  <p className="text-sm">{chaosAnnouncement}</p>
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
         )}
 
         {/* Game State Rendering */}
-        {gameState === "join" && renderJoinScreen()}
-        {gameState === "waiting" && renderWaitingScreen()}
-        {gameState === "answering" && renderAnswerScreen()}
-        {gameState === "voting" && renderVotingScreen()}
-        {gameState === "results" && renderResultsScreen()}
+        {gameState === "join" && (
+          <GameLayout.Join>
+            <JoinScreen
+              onJoin={joinRoom}
+              onAuth={() => setShowAuth(true)}
+              user={user}
+              loading={false}
+            />
+          </GameLayout.Join>
+        )}
+        
+        {gameState === "waiting" && (
+          <GameLayout.Waiting>
+            {renderWaitingScreen()}
+          </GameLayout.Waiting>
+        )}
+        
+        {gameState === "answering" && (
+          <GameLayout.Game>
+            {renderAnswerScreen()}
+          </GameLayout.Game>
+        )}
+        
+        {gameState === "voting" && (
+          <GameLayout.Game>
+            {renderVotingScreen()}
+          </GameLayout.Game>
+        )}
+        
+        {gameState === "results" && (
+          <GameLayout.Game>
+            {renderResultsScreen()}
+          </GameLayout.Game>
+        )}
       </div>
 
       {/* Particle Effects */}
@@ -1782,6 +1142,6 @@ export default function Game() {
           onUpdate={handleProfileUpdate}
         />
       )}
-    </div>
+    </GameLayout>
   );
 }
